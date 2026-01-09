@@ -1,0 +1,300 @@
+<mxfile host="app.diagrams.net" agent="GitHub Copilot" version="22.1.11">
+  <diagram name="Fluxograma Principal" id="FluxogramaPrincipal">
+    <mxGraphModel dx="1434" dy="844" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1600" pageHeight="1400" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        
+        <!-- Título -->
+        <mxCell id="titulo" value="&lt;h1&gt;Fluxograma: Sistema de Aprendizado Federado com Ataques de Envenenamento&lt;/h1&gt;" style="text;html=1;strokeColor=none;fillColor=none;spacing=5;spacingTop=-20;whiteSpace=wrap;overflow=hidden;rounded=0;align=center;" vertex="1" parent="1">
+          <mxGeometry x="400" y="20" width="800" height="60" as="geometry" />
+        </mxCell>
+        
+        <!-- Início -->
+        <mxCell id="inicio" value="INÍCIO" style="ellipse;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=14;fontStyle=1" vertex="1" parent="1">
+          <mxGeometry x="720" y="100" width="160" height="60" as="geometry" />
+        </mxCell>
+        
+        <!-- Inicialização do Sistema -->
+        <mxCell id="init_sistema" value="Inicializar ServidorFederado&lt;br&gt;(max_rodadas, criterio_convergencia)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="670" y="200" width="260" height="60" as="geometry" />
+        </mxCell>
+        
+        <!-- Adicionar Clientes -->
+        <mxCell id="add_clientes" value="Adicionar Clientes ao Servidor&lt;br&gt;(ClienteHonesto, ClienteMalicioso)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="670" y="300" width="260" height="60" as="geometry" />
+        </mxCell>
+        
+        <!-- Inicializar Modelo Global -->
+        <mxCell id="init_modelo" value="Inicializar ModeloGlobal&lt;br&gt;(pesos iniciais aleatórios)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="670" y="400" width="260" height="60" as="geometry" />
+        </mxCell>
+        
+        <!-- Início do Loop -->
+        <mxCell id="loop_inicio" value="rodada_atual = 0" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="670" y="500" width="260" height="40" as="geometry" />
+        </mxCell>
+        
+        <!-- Condição Loop -->
+        <mxCell id="cond_loop" value="rodada_atual &lt; max_rodadas&lt;br&gt;E NÃO convergiu?" style="rhombus;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d79b00;fontSize=12;fontStyle=1" vertex="1" parent="1">
+          <mxGeometry x="660" y="580" width="280" height="100" as="geometry" />
+        </mxCell>
+        
+        <!-- Compartilhar Modelo Global -->
+        <mxCell id="compartilhar" value="Compartilhar pesos do&lt;br&gt;ModeloGlobal com todos os clientes" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="670" y="730" width="260" height="60" as="geometry" />
+        </mxCell>
+        
+        <!-- Loop Clientes -->
+        <mxCell id="loop_clientes_inicio" value="Para cada cliente&lt;br&gt;em lista_clientes" style="shape=hexagon;perimeter=hexagonPerimeter2;whiteSpace=wrap;html=1;fixedSize=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=12;fontStyle=1" vertex="1" parent="1">
+          <mxGeometry x="670" y="830" width="260" height="60" as="geometry" />
+        </mxCell>
+        
+        <!-- Decisão Tipo de Cliente -->
+        <mxCell id="decisao_tipo" value="Cliente é&lt;br&gt;Malicioso?" style="rhombus;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=12;fontStyle=1" vertex="1" parent="1">
+          <mxGeometry x="700" y="930" width="200" height="100" as="geometry" />
+        </mxCell>
+        
+        <!-- Treinamento Honesto -->
+        <mxCell id="treino_honesto" value="Cliente Honesto:&lt;br&gt;treinar_local(pesos_globais)&lt;br&gt;[Treinamento Normal]" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="400" y="950" width="220" height="60" as="geometry" />
+        </mxCell>
+        
+        <!-- Tipo de Ataque -->
+        <mxCell id="decisao_ataque" value="Tipo de&lt;br&gt;Ataque?" style="rhombus;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;fontSize=12;fontStyle=1" vertex="1" parent="1">
+          <mxGeometry x="1000" y="930" width="180" height="100" as="geometry" />
+        </mxCell>
+        
+        <!-- Envenenamento de Dados -->
+        <mxCell id="envenenar_dados" value="🔴 envenenar_dados()&lt;br&gt;• Inverter labels (30%)&lt;br&gt;• Adicionar ruído&lt;br&gt;• Modificar features" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;fontSize=11;align=left;" vertex="1" parent="1">
+          <mxGeometry x="1220" y="880" width="200" height="80" as="geometry" />
+        </mxCell>
+        
+        <!-- Envenenamento de Modelo -->
+        <mxCell id="envenenar_modelo" value="🔴 envenenar_modelo()&lt;br&gt;• Ruído gaussiano nos pesos&lt;br&gt;• Inverter sinais&lt;br&gt;• Amplificar gradientes" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;fontSize=11;align=left;" vertex="1" parent="1">
+          <mxGeometry x="1220" y="1000" width="200" height="80" as="geometry" />
+        </mxCell>
+        
+        <!-- Treinar Modelo Envenenado -->
+        <mxCell id="treino_malicioso" value="treinar_local(pesos_globais)&lt;br&gt;[Com dados/modelo envenenado]" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="1000" y="1120" width="180" height="60" as="geometry" />
+        </mxCell>
+        
+        <!-- Retornar Modelo Local -->
+        <mxCell id="retornar_modelo" value="Retornar ModeloLocal&lt;br&gt;treinado ao servidor" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="670" y="1230" width="260" height="60" as="geometry" />
+        </mxCell>
+        
+        <!-- Avaliar Modelos -->
+        <mxCell id="avaliar_modelos" value="avaliar_modelos_individuais()&lt;br&gt;• Calcular métricas&lt;br&gt;• Obter acurácia/perda" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=11;align=left;" vertex="1" parent="1">
+          <mxGeometry x="670" y="1330" width="260" height="70" as="geometry" />
+        </mxCell>
+        
+        <!-- Calcular Pesos de Agregação -->
+        <mxCell id="calc_pesos" value="calcular_pesos_agregacao()&lt;br&gt;peso_i = acuracia_i / Σ(acurácias)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="670" y="1440" width="260" height="60" as="geometry" />
+        </mxCell>
+        
+        <!-- Agregar Modelos -->
+        <mxCell id="agregar" value="agregar_modelos(usar_pesos=True)&lt;br&gt;• Média ponderada dos pesos&lt;br&gt;• Atualizar ModeloGlobal" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=11;align=left;" vertex="1" parent="1">
+          <mxGeometry x="670" y="1540" width="260" height="70" as="geometry" />
+        </mxCell>
+        
+        <!-- Avaliar Convergência -->
+        <mxCell id="avaliar_conv" value="avaliar_convergencia()&lt;br&gt;|acuracia_atual - acuracia_anterior| &lt; ε" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="670" y="1650" width="260" height="60" as="geometry" />
+        </mxCell>
+        
+        <!-- Incrementar Rodada -->
+        <mxCell id="incrementar" value="rodada_atual += 1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="670" y="1750" width="260" height="40" as="geometry" />
+        </mxCell>
+        
+        <!-- Retorno Loop -->
+        <mxCell id="retorno_loop" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=none;strokeColor=#666666;dashed=1;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="1050" y="580" width="20" height="100" as="geometry" />
+        </mxCell>
+        
+        <!-- Fim do Sistema -->
+        <mxCell id="fim_sistema" value="Sistema Convergiu ou&lt;br&gt;Atingiu max_rodadas" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="670" y="1840" width="260" height="60" as="geometry" />
+        </mxCell>
+        
+        <!-- Resultados -->
+        <mxCell id="resultados" value="Exibir Resultados:&lt;br&gt;• ModeloGlobal final&lt;br&gt;• Métricas de desempenho&lt;br&gt;• Histórico de treinamento&lt;br&gt;• Impacto dos ataques" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d79b00;fontSize=11;align=left;" vertex="1" parent="1">
+          <mxGeometry x="670" y="1940" width="260" height="100" as="geometry" />
+        </mxCell>
+        
+        <!-- Fim -->
+        <mxCell id="fim" value="FIM" style="ellipse;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;fontSize=14;fontStyle=1" vertex="1" parent="1">
+          <mxGeometry x="720" y="2080" width="160" height="60" as="geometry" />
+        </mxCell>
+        
+        <!-- Conexões -->
+        <mxCell id="edge1" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=classic;strokeWidth=2;" edge="1" parent="1" source="inicio" target="init_sistema">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="edge2" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=classic;strokeWidth=2;" edge="1" parent="1" source="init_sistema" target="add_clientes">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="edge3" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=classic;strokeWidth=2;" edge="1" parent="1" source="add_clientes" target="init_modelo">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="edge4" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=classic;strokeWidth=2;" edge="1" parent="1" source="init_modelo" target="loop_inicio">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="edge5" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=classic;strokeWidth=2;" edge="1" parent="1" source="loop_inicio" target="cond_loop">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="edge6" value="SIM" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=classic;strokeWidth=2;fontStyle=1;fontSize=12;" edge="1" parent="1" source="cond_loop" target="compartilhar">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="edge7" value="NÃO" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=classic;strokeWidth=2;fontStyle=1;fontSize=12;exitX=1;exitY=0.5;exitDx=0;exitDy=0;" edge="1" parent="1" source="cond_loop" target="fim_sistema">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="1120" y="630" />
+              <mxPoint x="1120" y="1870" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        
+        <mxCell id="edge8" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=classic;strokeWidth=2;" edge="1" parent="1" source="compartilhar" target="loop_clientes_inicio">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="edge9" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=classic;strokeWidth=2;" edge="1" parent="1" source="loop_clientes_inicio" target="decisao_tipo">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="edge10" value="NÃO" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=classic;strokeWidth=2;fontStyle=1;fontSize=12;exitX=0;exitY=0.5;exitDx=0;exitDy=0;" edge="1" parent="1" source="decisao_tipo" target="treino_honesto">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="edge11" value="SIM" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=classic;strokeWidth=2;fontStyle=1;fontSize=12;exitX=1;exitY=0.5;exitDx=0;exitDy=0;" edge="1" parent="1" source="decisao_tipo" target="decisao_ataque">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="edge12" value="DADOS" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=classic;strokeWidth=2;fontStyle=1;fontSize=11;exitX=1;exitY=0.25;exitDx=0;exitDy=0;" edge="1" parent="1" source="decisao_ataque" target="envenenar_dados">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="edge13" value="MODELO" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=classic;strokeWidth=2;fontStyle=1;fontSize=11;exitX=1;exitY=0.75;exitDx=0;exitDy=0;" edge="1" parent="1" source="decisao_ataque" target="envenenar_modelo">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="edge14" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=classic;strokeWidth=2;" edge="1" parent="1" source="envenenar_dados" target="treino_malicioso">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="1320" y="1000" />
+              <mxPoint x="1320" y="1150" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        
+        <mxCell id="edge15" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=classic;strokeWidth=2;" edge="1" parent="1" source="envenenar_modelo" target="treino_malicioso">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="1320" y="1080" />
+              <mxPoint x="1320" y="1150" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        
+        <mxCell id="edge16" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=classic;strokeWidth=2;" edge="1" parent="1" source="treino_honesto" target="retornar_modelo">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="510" y="1120" />
+              <mxPoint x="510" y="1260" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        
+        <mxCell id="edge17" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=classic;strokeWidth=2;" edge="1" parent="1" source="treino_malicioso" target="retornar_modelo">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="1090" y="1200" />
+              <mxPoint x="1090" y="1260" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        
+        <mxCell id="edge18" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=classic;strokeWidth=2;" edge="1" parent="1" source="retornar_modelo" target="avaliar_modelos">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="edge19" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=classic;strokeWidth=2;" edge="1" parent="1" source="avaliar_modelos" target="calc_pesos">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="edge20" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=classic;strokeWidth=2;" edge="1" parent="1" source="calc_pesos" target="agregar">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="edge21" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=classic;strokeWidth=2;" edge="1" parent="1" source="agregar" target="avaliar_conv">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="edge22" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=classic;strokeWidth=2;" edge="1" parent="1" source="avaliar_conv" target="incrementar">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="edge23" value="Volta ao início do loop" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=classic;strokeWidth=2;exitX=1;exitY=0.5;exitDx=0;exitDy=0;dashed=1;fontSize=11;fontStyle=2;" edge="1" parent="1" source="incrementar" target="cond_loop">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="1060" y="1770" />
+              <mxPoint x="1060" y="630" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        
+        <mxCell id="edge24" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=classic;strokeWidth=2;" edge="1" parent="1" source="fim_sistema" target="resultados">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="edge25" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=classic;strokeWidth=2;" edge="1" parent="1" source="resultados" target="fim">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        
+        <!-- Anotações -->
+        <mxCell id="nota1" value="📝 LOOP PRINCIPAL&lt;br&gt;Itera até convergência&lt;br&gt;ou max_rodadas" style="shape=note;whiteSpace=wrap;html=1;backgroundOutline=1;darkOpacity=0.05;fillColor=#ffe6cc;strokeColor=#d79b00;size=15;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="140" y="590" width="160" height="80" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="nota2" value="🔁 LOOP CLIENTES&lt;br&gt;Treina cada cliente&lt;br&gt;sequencialmente" style="shape=note;whiteSpace=wrap;html=1;backgroundOutline=1;darkOpacity=0.05;fillColor=#e1d5e7;strokeColor=#9673a6;size=15;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="140" y="950" width="160" height="80" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="nota3" value="⚖️ AGREGAÇÃO&lt;br&gt;Média ponderada&lt;br&gt;baseada em acurácia" style="shape=note;whiteSpace=wrap;html=1;backgroundOutline=1;darkOpacity=0.05;fillColor=#d5e8d4;strokeColor=#82b366;size=15;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="140" y="1525" width="160" height="80" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="nota4" value="🔴 PONTOS DE ATAQUE&lt;br&gt;1. Envenenamento de Dados&lt;br&gt;   • Antes do treinamento&lt;br&gt;   • Modifica labels/features&lt;br&gt;&lt;br&gt;2. Envenenamento de Modelo&lt;br&gt;   • Após o treinamento&lt;br&gt;   • Modifica pesos" style="shape=note;whiteSpace=wrap;html=1;backgroundOutline=1;darkOpacity=0.05;fillColor=#f8cecc;strokeColor=#b85450;size=15;fontSize=10;align=left;" vertex="1" parent="1">
+          <mxGeometry x="1280" y="640" width="200" height="160" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="legenda" value="&lt;b&gt;LEGENDA&lt;/b&gt;&lt;br&gt;&lt;br&gt;🟦 Servidor/Coordenação&lt;br&gt;🟨 Modelo (Local/Global)&lt;br&gt;🟩 Cliente Honesto&lt;br&gt;🟥 Cliente Malicioso/Ataque&lt;br&gt;🟧 Decisão/Condição&lt;br&gt;⬜ Controle de Fluxo" style="shape=note;whiteSpace=wrap;html=1;backgroundOutline=1;darkOpacity=0.05;fillColor=#f5f5f5;strokeColor=#666666;size=15;fontSize=11;align=left;" vertex="1" parent="1">
+          <mxGeometry x="100" y="1880" width="220" height="160" as="geometry" />
+        </mxCell>
+        
+        <!-- Swimlanes invisíveis para organização -->
+        <mxCell id="swimlane1" value="SERVIDOR" style="swimlane;startSize=20;fillColor=none;strokeColor=#6c8ebf;fontSize=10;fontStyle=2;dashed=1;" vertex="1" parent="1">
+          <mxGeometry x="40" y="180" width="580" height="340" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="swimlane2" value="LOOP DE RODADAS" style="swimlane;startSize=20;fillColor=none;strokeColor=#d79b00;fontSize=10;fontStyle=2;dashed=1;" vertex="1" parent="1">
+          <mxGeometry x="40" y="560" width="1100" height="1250" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="swimlane3" value="CLIENTES (Loop Interno)" style="swimlane;startSize=20;fillColor=none;strokeColor=#9673a6;fontSize=10;fontStyle=2;dashed=1;" vertex="1" parent="1">
+          <mxGeometry x="320" y="810" width="1120" height="490" as="geometry" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>
