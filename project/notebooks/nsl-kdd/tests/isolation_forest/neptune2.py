@@ -64,10 +64,12 @@ try:
 
     # Identificar arquivos de treino e teste
     for file in files:
+        # arquivo de treino para construir o modelo
         if "train" in file.lower() and file.endswith((".csv", ".txt")):
             train_file = file
+            # arquivos de teste para validar o modelo 
         elif "test" in file.lower() and file.endswith((".csv", ".txt")):
-            test_file = file
+            test_file = file 
 
     print(f"\n🎯 Arquivo de treino: {train_file}")
     print(f"🎯 Arquivo de teste: {test_file}")
@@ -80,20 +82,15 @@ if train_file:
     df_train = pd.read_csv(f"{DATA_DIR}/{train_file}", header=None)
     print(f"✅ Dados de treino carregados: {len(df_train):,} registros")
     
-    if test_file:
-        df_test = pd.read_csv(f"{DATA_DIR}/{test_file}", header=None)
-        print(f"✅ Dados de teste carregados: {len(df_test):,} registros")
-        
-        # Combinar datasets
-        df = pd.concat([df_train, df_test], ignore_index=True)
-    else:
-        df = df_train.copy()
+if test_file:
+    df_test = pd.read_csv(f"{DATA_DIR}/{test_file}", header=None)
+    print(f"✅ Dados de teste carregados: {len(df_test):,} registros")
     
-    print(f"📊 Dataset final: {len(df):,} registros, {len(df.columns)} colunas")
+    # Combinar datasets
+    df = pd.concat([df_train, df_test], ignore_index=True)
 else:
-    print("❌ Nenhum arquivo de dados encontrado! Verifique o diretório e execute o download do dataset.")
-    raise FileNotFoundError("Arquivos de treino não encontrados no diretório especificado.")
-# %%
+    df = df_train.copy()
+
 # Definir nomes das colunas do NSL-KDD
 columns = [
     "duration",
@@ -151,18 +148,17 @@ print(f"✅ Estrutura definida: {len(df.columns)} colunas")
 print(f"📋 Primeiras colunas: {list(df.columns[:10])}")
 print(f"🎯 Coluna target: attack_type")
 # %%
-# distribuição
+# distribuição 
 df_filtered = df[df["attack_type"].isin(["normal", TARGET_ATTACK])]
 num_cols = df_filtered.select_dtypes(include=["number"]).columns
 
-num_cols = df_filtered.select_dtypes(include=["number"]).columns
 cat_cols = df_filtered.select_dtypes(exclude=["number"]).columns.drop(
     "attack_type", errors="ignore"
 )
 if len(num_cols) > 0:
     n = len(num_cols)
-    cols = 3
-    rows = (n + cols - 1) // cols
+    cols = 3 
+    rows = (n + cols - 1) // cols 
 
     fig, axes = plt.subplots(rows, cols, figsize=(5 * cols, 4 * rows))
     axes = axes.flatten()
@@ -208,8 +204,9 @@ if len(cat_cols) > 0:
     plt.tight_layout()
     plt.show()
 # %%
-# detecção de outliers
-X = df_filtered[["count", "serror_rate"]].dropna()
+# detecção de outliers - TESTANDO: Bytes transferidos
+# Alteração: substituindo count e serror_rate por src_bytes e dst_bytes
+X = df_filtered[["src_bytes", "dst_bytes"]].dropna()
 iso = IsolationForest(contamination=0.05, random_state=42)
 outlier_pred = iso.fit_predict(X)
 X_clustered = X.copy()
@@ -221,27 +218,27 @@ df_filtered["outlier"] = df_filtered["outlier"].astype("Int64")
 plt.figure(figsize=(8, 6))
 sns.scatterplot(
     data=df_filtered,
-    x="count",
-    y="serror_rate",
+    x="src_bytes",
+    y="dst_bytes",
     hue="outlier",
     palette={0: "blue", 1: "red"},
     s=50,
 )
-plt.title("Detecção de Outliers com Isolation Forest")
+plt.title("Detecção de Outliers com Isolation Forest - Bytes Transferidos")
 plt.tight_layout()
 plt.show()
 
 plt.figure(figsize=(8, 6))
 sns.scatterplot(
     data=df_filtered,
-    x="count",
-    y="serror_rate",
+    x="src_bytes",
+    y="dst_bytes",
     hue="attack_type",
     palette="tab10",
     s=50,
 )
 
-plt.title("Distribuição de attack_type (count vs serror_rate)")
+plt.title("Distribuição de attack_type (src_bytes vs dst_bytes)")
 plt.tight_layout()
 plt.show()
 # %%
@@ -277,3 +274,4 @@ print(f"Acurácia:  {acc:.4f}")
 print(f"Precisão:  {prec:.4f}")
 print(f"Recall:    {rec:.4f}")
 print(f"F1-score:  {f1:.4f}")
+# %%
