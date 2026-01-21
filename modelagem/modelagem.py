@@ -1,5 +1,5 @@
 """
-Sistema Simplificado de Aprendizado Federado com Ataques de Envenenamento
+Sistema de Aprendizado Federado com Ataques de Envenenamento
 Modelo: LinearRegression
 """
 import pandas as pd
@@ -200,7 +200,7 @@ class ServidorFederado:
                 # Calcula threshold baseado em MAD
                 desvios = [np.linalg.norm(c - mediana_coefs) for c in todos_coefs]
                 mad = np.median(np.abs(desvios - np.median(desvios)))
-                threshold = np.median(desvios) + 3 * mad  # 3 MADs = outlier
+                threshold = np.median(desvios) + 3 * mad  # 3 MADs = outlier    
                 
                 # Detecta outlier
                 if distancia > threshold:
