@@ -7,12 +7,10 @@ from typing import List, Dict, Optional
 from copy import deepcopy
 from abc import ABC, abstractmethod
 
-
 class Modelo:
     """Classe base que representa um modelo de machine learning"""
     
     def __init__(self):
-        # Atributo público conforme diagrama UML (sem underscore)
         self.pesos: List = []
     
     def obter_pesos(self) -> List:
@@ -28,7 +26,6 @@ class ServidorFederado:
     """Servidor central do aprendizado federado"""
     
     def __init__(self, max_rodadas: int, criterio_convergencia: float):
-        # Atributos privados conforme diagrama UML
         self._rodada_atual: int = 0
         self._max_rodadas: int = max_rodadas
         self._criterio_convergencia: float = criterio_convergencia
@@ -36,15 +33,14 @@ class ServidorFederado:
         self._modelo_global: Modelo = Modelo()
         self._metricas_avaliacao: Dict = {}
         self._historico_metricas: List[Dict] = []
-        # Atributo auxiliar para controle de convergência
         self._desempenho_anterior: Optional[float] = None
     
     def adicionar_cliente(self, cliente: "ClienteFederado") -> None:
-        """Adiciona um cliente à lista de participantes (conforme diagrama UML)"""
+        """Adiciona um cliente à lista de participantes"""
         self._lista_clientes.append(cliente)
     
     def avaliar_modelo(self) -> None:
-        """Avalia o desempenho do modelo global (conforme diagrama UML)"""
+        """Avalia o desempenho do modelo global"""
         if not self._lista_clientes:
             return
         
@@ -54,7 +50,7 @@ class ServidorFederado:
         
         for cliente in self._lista_clientes:
             metricas = cliente.get_metricas_avaliacao()
-            if metricas:
+            if metricas: 
                 acuracias.append(metricas.get('acuracia', 0))
                 perdas.append(metricas.get('perda', 0))
         
@@ -71,15 +67,15 @@ class ServidorFederado:
             self._historico_metricas.append(deepcopy(self._metricas_avaliacao))
     
     def compartilhar_modelo_global(self) -> None:
-        """Distribui pesos do modelo global para todos os clientes (conforme diagrama UML)"""
+        """Distribui pesos do modelo global para todos os clientes"""
         pesos_globais = self._modelo_global.obter_pesos()
         for cliente in self._lista_clientes:
             cliente.set_modelo_local(pesos_globais)
     
     def set_modelo_global(self) -> None:
         """
-        Atualiza o modelo global com agregação dos modelos locais (conforme diagrama UML)
-        Este método implementa a agregação usando média ponderada baseada no desempenho
+        Atualiza o modelo global com agregação dos modelos locais
+        Implementa agregação usando média ponderada baseada no desempenho
         """
         if not self._lista_clientes:
             return
@@ -115,7 +111,7 @@ class ServidorFederado:
     
     def avaliar_convergencia(self) -> bool:
         """
-        Verifica se o treinamento convergiu (conforme diagrama UML)
+        Verifica se o treinamento convergiu
         
         Implementa dois critérios de convergência:
         1. Número máximo de rodadas (max_rodadas) - critério de parada forçada
@@ -126,7 +122,7 @@ class ServidorFederado:
         """
         # Critério 1: Atingiu número máximo de rodadas
         if self._rodada_atual >= self._max_rodadas:
-            print(f"   ⚠️ Convergência: Atingiu max_rodadas ({self._max_rodadas})")
+            print(f"   Convergência: Atingiu max_rodadas ({self._max_rodadas})")
             return True
         
         # Critério 2: Estabilidade do modelo (early stop)
@@ -135,7 +131,7 @@ class ServidorFederado:
             variacao = abs(desempenho_atual - self._desempenho_anterior)
             
             if variacao < self._criterio_convergencia:
-                print(f"   ✓ Convergência antecipada: variação={variacao:.4f} < {self._criterio_convergencia}")
+                print(f"   Convergência antecipada: variação={variacao:.4f} < {self._criterio_convergencia}")
                 return True
             
             self._desempenho_anterior = desempenho_atual
@@ -145,12 +141,10 @@ class ServidorFederado:
         
         return False
     
-    # Métodos auxiliares (não estão no diagrama UML, mas são necessários para implementação)
-    
     def _calcular_pesos_agregacao(self) -> Dict[str, float]:
         """
-        Método auxiliar privado: Calcula pesos de agregação baseados no desempenho
-        Não está no diagrama UML, mas é usado internamente por set_modelo_global()
+        Calcula pesos de agregação baseados no desempenho dos clientes
+        Método auxiliar usado internamente por set_modelo_global()
         """
         metricas_clientes = {}
         for cliente in self._lista_clientes:
@@ -176,39 +170,39 @@ class ServidorFederado:
     
     def executar_aprendizado_federado(self) -> None:
         """
-        Método auxiliar: Executa o loop principal do aprendizado federado
-        Não está no diagrama UML, mas orquestra os métodos do diagrama
+        Executa o loop principal do aprendizado federado
+        Orquestra os métodos de treinamento, avaliação e agregação
         """
-        print("🚀 Iniciando Aprendizado Federado\n")
+        print("Iniciando Aprendizado Federado\n")
         
         while not self.avaliar_convergencia():
             self._rodada_atual += 1
             print(f"{'='*60}")
-            print(f"📍 Rodada {self._rodada_atual}/{self._max_rodadas}")
+            print(f"Rodada {self._rodada_atual}/{self._max_rodadas}")
             print(f"{'='*60}")
             
-            # 1. Compartilhar modelo global (método do diagrama UML)
+            # 1. Compartilhar modelo global
             self.compartilhar_modelo_global()
             
             # 2. Cada cliente treina localmente
-            print("\n🔄 Treinamento Local:")
+            print("\nTreinamento Local:")
             for cliente in self._lista_clientes:
                 cliente.treinar_modelo()
             
-            # 3. Avaliar o modelo global (método do diagrama UML)
-            print("\n📊 Avaliação do Modelo:")
+            # 3. Avaliar o modelo global
+            print("\nAvaliação do Modelo:")
             self.avaliar_modelo()
             
-            # 4. Atualizar modelo global com agregação (método do diagrama UML)
-            print("\n🔀 Agregação de Modelos")
+            # 4. Atualizar modelo global com agregação
+            print("\nAgregação de Modelos")
             self.set_modelo_global()
             
             # 5. Mostrar métricas
             acuracia_media = self._metricas_avaliacao.get('acuracia_media', 0)
-            print(f"\n✓ Modelo Global Atualizado - Acurácia Média: {acuracia_media:.4f}\n")
+            print(f"\nModelo Global Atualizado - Acurácia Média: {acuracia_media:.4f}\n")
         
         print(f"{'='*60}")
-        print("✅ Aprendizado Federado Concluído!")
+        print("Aprendizado Federado Concluído!")
         print(f"{'='*60}")
         print(f"Total de rodadas: {self._rodada_atual}")
         print(f"Acurácia final: {self._metricas_avaliacao.get('acuracia_media', 0):.4f}")
@@ -216,10 +210,9 @@ class ServidorFederado:
 
 
 class ClienteFederado(ABC):
-    """Classe abstrata base para clientes federados (conforme diagrama UML)"""
+    """Classe abstrata base para clientes federados"""
     
     def __init__(self, id_cliente: str):
-        # Atributos privados conforme diagrama UML
         self._id_cliente: str = id_cliente
         self._dados: pd.DataFrame = pd.DataFrame()
         self._modelo_local: Modelo = Modelo()
@@ -227,47 +220,43 @@ class ClienteFederado(ABC):
     
     @abstractmethod
     def treinar_modelo(self) -> None:
-        """Treina o modelo local (método abstrato conforme diagrama UML)"""
+        """Treina o modelo local"""
         pass
     
     def get_modelo_local(self) -> Modelo:
-        """Retorna o modelo local treinado (conforme diagrama UML)"""
+        """Retorna o modelo local treinado"""
         return self._modelo_local
     
     def get_metricas_avaliacao(self) -> Dict:
-        """Retorna as métricas de avaliação do treinamento (conforme diagrama UML)"""
+        """Retorna as métricas de avaliação do treinamento"""
         return self._metricas_avaliacao
     
     def avaliar_modelo(self) -> None:
-        """Avalia o modelo local (conforme diagrama UML)"""
+        """Avalia o modelo local"""
         # Implementação simulada de avaliação
         if self._metricas_avaliacao:
-            print(f"    📊 Avaliando {self._id_cliente}: Acurácia={self._metricas_avaliacao.get('acuracia', 0):.2f}")
+            print(f"    Avaliando {self._id_cliente}: Acurácia={self._metricas_avaliacao.get('acuracia', 0):.2f}")
     
     def set_modelo_local(self, pesos_globais: List) -> None:
-        """
-        Atualiza modelo local com pesos globais (conforme diagrama UML)
-        Nota: No diagrama era set_modelo_local(modelo_global: ModeloGlobal), 
-        mas como ModeloGlobal não existe mais, recebe os pesos diretamente
-        """
+        """Atualiza modelo local com pesos globais"""
         self._modelo_local.atualizar_pesos(pesos_globais)
     
     def compartilhar_modelo_local(self) -> None:
-        """Compartilha o modelo local (conforme diagrama UML)"""
+        """Compartilha o modelo local"""
         # Simula compartilhamento do modelo
-        print(f"    📤 {self._id_cliente}: Compartilhando modelo local")
+        print(f"    {self._id_cliente}: Compartilhando modelo local")
     
     def obter_pesos(self) -> List:
-        """Retorna os pesos do modelo local (conforme diagrama UML)"""
+        """Retorna os pesos do modelo local"""
         return self._modelo_local.obter_pesos()
 
 
 class ClienteHonesto(ClienteFederado):
-    """Cliente honesto que treina normalmente sem ataques (conforme diagrama UML)"""
+    """Cliente honesto que treina normalmente sem ataques"""
     
     def treinar_modelo(self) -> None:
-        """Treina o modelo de forma honesta e legítima (conforme diagrama UML)"""
-        print(f"  🟢 {self._id_cliente}: Treinamento honesto")
+        """Treina o modelo de forma honesta e legítima"""
+        print(f"  {self._id_cliente}: Treinamento honesto")
         
         # Simula treinamento bem-sucedido
         self._metricas_avaliacao = {
@@ -287,40 +276,30 @@ class ClienteHonesto(ClienteFederado):
 
 
 class ClienteMalicioso(ClienteFederado):
-    """Cliente malicioso que executa ataques de envenenamento (conforme diagrama UML)"""
+    """Cliente malicioso que executa ataques de envenenamento"""
     
     def __init__(self, id_cliente: str, tipo_ataque: str):
         super().__init__(id_cliente)
-        # Atributo específico conforme diagrama UML
         self._tipo_ataque: str = tipo_ataque
     
     def envenenar_dados(self) -> None:
-        """
-        Aplica envenenamento nos dados de treinamento (conforme diagrama UML)
-        Nota: No diagrama é envenenar_dados(), sem parâmetros nem retorno
-        """
-        print(f"    🔴 Aplicando envenenamento de dados...")
-        # Simula corrupção dos dados (inverter labels, adicionar ruído, etc.)
+        """Aplica envenenamento nos dados de treinamento"""
+        print(f"    Aplicando envenenamento de dados...")
         if not self._dados.empty:
-            # Implementação simulada de envenenamento
-            self._dados = self._dados.copy()  # Simula modificação
+            self._dados = self._dados.copy()
     
     def envenenar_modelo(self) -> None:
-        """
-        Aplica envenenamento no modelo/pesos (conforme diagrama UML)
-        Nota: No diagrama é envenenar_modelo(), sem parâmetros nem retorno
-        """
-        print(f"    🔴 Aplicando envenenamento no modelo...")
+        """Aplica envenenamento no modelo (pesos)"""
+        print(f"    Aplicando envenenamento no modelo...")
         pesos_originais = self._modelo_local.obter_pesos()
         
         if pesos_originais:
-            # Adiciona ruído significativo nos pesos
             pesos_envenenados = [p + np.random.uniform(-0.5, 0.5) for p in pesos_originais]
             self._modelo_local.atualizar_pesos(pesos_envenenados)
     
     def treinar_modelo(self) -> None:
-        """Treina o modelo aplicando o ataque especificado (conforme diagrama UML)"""
-        print(f"  🔴 {self._id_cliente}: Ataque tipo '{self._tipo_ataque}'")
+        """Treina o modelo aplicando o ataque especificado"""
+        print(f"  {self._id_cliente}: Ataque tipo '{self._tipo_ataque}'")
         
         # Aplica ataque conforme tipo
         if self._tipo_ataque == "dados":
@@ -366,12 +345,12 @@ if __name__ == "__main__":
     servidor.adicionar_cliente(ClienteMalicioso("cliente_malicioso_1", "dados"))
     servidor.adicionar_cliente(ClienteMalicioso("cliente_malicioso_2", "modelo"))
     
-    print(f"\n📊 Configuração:")
-    print(f"  • Total de clientes: {len(servidor._lista_clientes)}")
-    print(f"  • Clientes honestos: 3")
-    print(f"  • Clientes maliciosos: 2")
-    print(f"  • Max rodadas: {servidor._max_rodadas}")
-    print(f"  • Critério convergência (early stop): {servidor._criterio_convergencia}")
+    print(f"\nConfiguração:")
+    print(f"  - Total de clientes: {len(servidor._lista_clientes)}")
+    print(f"  - Clientes honestos: 3")
+    print(f"  - Clientes maliciosos: 2")
+    print(f"  - Max rodadas: {servidor._max_rodadas}")
+    print(f"  - Critério convergência (early stop): {servidor._criterio_convergencia}")
     print()
     
     # Executar aprendizado federado
