@@ -1,15 +1,29 @@
-pandas>=1.3.0
-numpy>=1.21.0
-scikit-learn>=1.0.0
-matplotlib>=3.5.0
-seaborn>=0.11.0
-scipy>=1.7.0
-kaggle>=1.5.0
-kagglehub>=0.2.0
-plotly>=5.0.0
-dash>=2.0.0
+# Bibliotecas principais para análise de dados
+pandas>=2.0.0
+numpy>=1.24.0
+matplotlib>=3.7.0
+seaborn>=0.12.0
+scipy>=1.10.0
 
-# NSL-KDD Dataset dependencies
+# Machine Learning e Scikit-learn
+scikit-learn>=1.3.0
+
+# Tratamento de dados desbalanceados
+imbalanced-learn>=0.11.0
+
+# Jupyter e notebooks
 jupyter>=1.0.0
 notebook>=6.4.0
 ipywidgets>=7.6.0
+
+# Datasets e downloads
+kaggle>=1.5.0
+kagglehub>=0.2.0
+
+# Visualizações adicionais
+plotly>=5.0.0
+dash>=2.0.0
+
+# Utilitários padrão do Python (já inclusos)
+# os (built-in)
+# warnings (built-in)

@@ -165,7 +165,7 @@ cython_debug/
 .vscode/extensions.json
 .vscode/.ropeproject
 .history
-
+vscode/
 # macOS
 .DS_Store
 .AppleDouble
