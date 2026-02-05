@@ -1,15 +1,23 @@
 """
 Sistema de Aprendizado Federado com Ataques de Envenenamento
 Modelo: LinearRegression
+Dataset: Iris (project/data/iris/iris.csv)
+Objetivo: Predizer petal width baseado em sepal length, sepal width, petal length
 """
 import pandas as pd
 import numpy as np
+import matplotlib.pyplot as plt
+import seaborn as sns
 from sklearn.linear_model import LinearRegression
 from sklearn.preprocessing import StandardScaler
-from sklearn.metrics import r2_score, mean_squared_error
+from sklearn.metrics import r2_score, mean_squared_error, mean_absolute_error
+from sklearn.model_selection import train_test_split
 from copy import deepcopy
 from abc import ABC, abstractmethod
 from typing import Dict, List
+import warnings
+import os
+warnings.filterwarnings('ignore')
 
 class Modelo:
     """Classe que encapsula o modelo de machine learning"""
@@ -52,7 +60,7 @@ class Modelo:
 class ServidorFederado:
     """Servidor central do aprendizado federado"""
     
-    def __init__(self, max_rodadas: int = 5, criterio_convergencia: float = 0.01):
+    def __init__(self, max_rodadas: int = 5, criterio_convergencia: float = 0.01, dados_validacao=None):
         self.rodada_atual = 0
         self.max_rodadas = max_rodadas
         self.criterio_convergencia = criterio_convergencia
@@ -62,6 +70,10 @@ class ServidorFederado:
         self.historico_metricas = []
         self.outliers_detectados = []
         self.desempenho_anterior = None
+        self.dados_validacao = dados_validacao
+        self.historico_r2_global = []
+        self.historico_mse_global = []
+        self.historico_mae_global = []
     
     def adicionar_cliente(self, cliente):
         """Adiciona um cliente"""
@@ -85,10 +97,32 @@ class ServidorFederado:
             if metricas:
                 r2_scores.append(metricas.get('r2', 0))
         
+        # Avalia no conjunto de validação global apenas se o modelo foi treinado
+        if self.dados_validacao is not None and self.modelo_global.obter_pesos() is not None:
+            X_val, y_val = self.dados_validacao
+            scaler = StandardScaler()
+            X_val_scaled = scaler.fit_transform(X_val)
+            
+            y_pred = self.modelo_global.predict(X_val_scaled)
+            r2_global = r2_score(y_val, y_pred)
+            mse_global = mean_squared_error(y_val, y_pred)
+            mae_global = mean_absolute_error(y_val, y_pred)
+            
+            self.historico_r2_global.append(r2_global)
+            self.historico_mse_global.append(mse_global)
+            self.historico_mae_global.append(mae_global)
+        else:
+            r2_global = np.mean(r2_scores) if r2_scores else 0
+            mse_global = 0
+            mae_global = 0
+        
         if r2_scores:
             self.metricas_avaliacao = {
                 'rodada': self.rodada_atual,
-                'r2_medio': np.mean(r2_scores),
+                'r2_medio_clientes': np.mean(r2_scores),
+                'r2_global': r2_global,
+                'mse_global': mse_global,
+                'mae_global': mae_global,
                 'num_clientes': len(self.clientes)
             }
             self.historico_metricas.append(self.metricas_avaliacao.copy())
@@ -147,12 +181,18 @@ class ServidorFederado:
             
             # 5. Mostrar métricas
             if self.metricas_avaliacao:
-                r2_medio = self.metricas_avaliacao.get('r2_medio', 0)
-                print(f"\nModelo Global Atualizado - R2 Medio: {r2_medio:.4f}\n")
+                r2_global = self.metricas_avaliacao.get('r2_global', 0)
+                mse_global = self.metricas_avaliacao.get('mse_global', 0)
+                mae_global = self.metricas_avaliacao.get('mae_global', 0)
+                print(f"\nModelo Global Atualizado:")
+                print(f"  R2: {r2_global:.4f} | MSE: {mse_global:.4f} | MAE: {mae_global:.4f}\n")
         
         print(f"\n{'='*50}")
         print("Aprendizado Federado Concluido")
         print(f"{'='*50}")
+        
+        # Gerar visualizações
+        self.gerar_graficos()
         
         # Relatório de detecção de outliers
         if self.outliers_detectados:
@@ -227,6 +267,154 @@ class ServidorFederado:
                 })
         else:
             print(f"\n  [ALERTA] Todos os clientes foram detectados como outliers!")
+    
+    def gerar_graficos(self):
+        """Gera gráficos de evolução do modelo global"""
+        if not self.historico_metricas:
+            print("\nNenhuma metrica para visualizar.")
+            return
+        
+        # Garante que todos os históricos tenham o mesmo tamanho
+        n_rodadas = len(self.historico_metricas)
+        rodadas = [m['rodada'] for m in self.historico_metricas]
+        
+        # Se não há histórico global, preenche com zeros
+        if len(self.historico_r2_global) < n_rodadas:
+            self.historico_r2_global.extend([0] * (n_rodadas - len(self.historico_r2_global)))
+        if len(self.historico_mse_global) < n_rodadas:
+            self.historico_mse_global.extend([0] * (n_rodadas - len(self.historico_mse_global)))
+        if len(self.historico_mae_global) < n_rodadas:
+            self.historico_mae_global.extend([0] * (n_rodadas - len(self.historico_mae_global)))
+        
+        fig, axes = plt.subplots(2, 2, figsize=(14, 10))
+        fig.suptitle('Evolucao do Modelo Global - Aprendizado Federado (Iris Dataset)', fontsize=16, fontweight='bold')
+        
+        # 1. R² Score ao longo das rodadas
+        if self.historico_r2_global and len(self.historico_r2_global) == len(rodadas):
+            axes[0, 0].plot(rodadas, self.historico_r2_global[:n_rodadas], marker='o', linewidth=2, 
+                           color='#2ecc71', markersize=8, label='R² Global')
+            axes[0, 0].set_xlabel('Rodada', fontsize=11)
+            axes[0, 0].set_ylabel('R² Score', fontsize=11)
+            axes[0, 0].set_title('R² Score por Rodada', fontsize=12, fontweight='bold')
+            axes[0, 0].grid(True, alpha=0.3)
+            axes[0, 0].legend()
+            axes[0, 0].set_ylim([0, 1])
+            
+            # Adicionar anotações
+            for i, (x, y) in enumerate(zip(rodadas, self.historico_r2_global[:n_rodadas])):
+                axes[0, 0].annotate(f'{y:.3f}', (x, y), textcoords="offset points", 
+                                   xytext=(0,10), ha='center', fontsize=9)
+        
+        # 2. MSE (Mean Squared Error) ao longo das rodadas
+        if self.historico_mse_global and len(self.historico_mse_global) == len(rodadas):
+            axes[0, 1].plot(rodadas, self.historico_mse_global[:n_rodadas], marker='s', linewidth=2, 
+                           color='#e74c3c', markersize=8, label='MSE Global')
+            axes[0, 1].set_xlabel('Rodada', fontsize=11)
+            axes[0, 1].set_ylabel('MSE', fontsize=11)
+            axes[0, 1].set_title('Mean Squared Error por Rodada', fontsize=12, fontweight='bold')
+            axes[0, 1].grid(True, alpha=0.3)
+            axes[0, 1].legend()
+        
+        # 3. MAE (Mean Absolute Error) ao longo das rodadas
+        if self.historico_mae_global and len(self.historico_mae_global) == len(rodadas):
+            axes[1, 0].plot(rodadas, self.historico_mae_global[:n_rodadas], marker='^', linewidth=2, 
+                           color='#3498db', markersize=8, label='MAE Global')
+            axes[1, 0].set_xlabel('Rodada', fontsize=11)
+            axes[1, 0].set_ylabel('MAE', fontsize=11)
+            axes[1, 0].set_title('Mean Absolute Error por Rodada', fontsize=12, fontweight='bold')
+            axes[1, 0].grid(True, alpha=0.3)
+            axes[1, 0].legend()
+        
+        # 4. Número de clientes aceitos/rejeitados por rodada
+        clientes_aceitos = []
+        clientes_rejeitados = []
+        
+        for rodada_num in rodadas:
+            # Conta clientes rejeitados nesta rodada
+            rejeitados = 0
+            for deteccao in self.outliers_detectados:
+                if deteccao['rodada'] == rodada_num:
+                    rejeitados = len(deteccao['clientes'])
+                    break
+            
+            total_clientes = len(self.clientes)
+            aceitos = total_clientes - rejeitados
+            
+            clientes_aceitos.append(aceitos)
+            clientes_rejeitados.append(rejeitados)
+        
+        x_pos = np.arange(len(rodadas))
+        axes[1, 1].bar(x_pos, clientes_aceitos, label='Clientes Aceitos', color='#2ecc71', alpha=0.8)
+        axes[1, 1].bar(x_pos, clientes_rejeitados, bottom=clientes_aceitos, 
+                      label='Outliers Detectados', color='#e74c3c', alpha=0.8)
+        
+        axes[1, 1].set_xlabel('Rodada', fontsize=11)
+        axes[1, 1].set_ylabel('Número de Clientes', fontsize=11)
+        axes[1, 1].set_title('Clientes Aceitos vs Outliers por Rodada', fontsize=12, fontweight='bold')
+        axes[1, 1].set_xticks(x_pos)
+        axes[1, 1].set_xticklabels(rodadas)
+        axes[1, 1].grid(True, alpha=0.3, axis='y')
+        axes[1, 1].legend()
+        
+        plt.tight_layout()
+        
+        # Salvar gráfico
+        output_path = 'c:/Users/Administrador/Faculdade-Impacta/Iniciação-cientifica/project/modelagem/resultados_fl.png'
+        plt.savefig(output_path, dpi=300, bbox_inches='tight')
+        print(f"\nGraficos salvos em: {output_path}")
+        plt.show()
+     
+    def gerar_relatorio_estatistico(self):
+        """Gera relatório estatístico completo"""
+        if not self.historico_metricas:
+            return
+        
+        print(f"\n{'='*70}")
+        print("RELATORIO ESTATISTICO DO APRENDIZADO FEDERADO")
+        print(f"{'='*70}")
+        
+        # Estatísticas de R²
+        if self.historico_r2_global:
+            r2_valores = self.historico_r2_global
+            print(f"\nR² Score:")
+            print(f"  Inicial: {r2_valores[0]:.4f}")
+            print(f"  Final: {r2_valores[-1]:.4f}")
+            print(f"  Melhoria: {(r2_valores[-1] - r2_valores[0]):.4f}")
+            print(f"  Media: {np.mean(r2_valores):.4f}")
+            print(f"  Desvio Padrao: {np.std(r2_valores):.4f}")
+            print(f"  Maximo: {np.max(r2_valores):.4f}")
+            print(f"  Minimo: {np.min(r2_valores):.4f}")
+        
+        # Estatísticas de MSE
+        if self.historico_mse_global:
+            mse_valores = self.historico_mse_global
+            print(f"\nMean Squared Error:")
+            print(f"  Inicial: {mse_valores[0]:.4f}")
+            print(f"  Final: {mse_valores[-1]:.4f}")
+            print(f"  Reducao: {(mse_valores[0] - mse_valores[-1]):.4f}")
+            print(f"  Media: {np.mean(mse_valores):.4f}")
+            print(f"  Desvio Padrao: {np.std(mse_valores):.4f}")
+        
+        # Estatísticas de MAE
+        if self.historico_mae_global:
+            mae_valores = self.historico_mae_global
+            print(f"\nMean Absolute Error:")
+            print(f"  Inicial: {mae_valores[0]:.4f}")
+            print(f"  Final: {mae_valores[-1]:.4f}")
+            print(f"  Reducao: {(mae_valores[0] - mae_valores[-1]):.4f}")
+            print(f"  Media: {np.mean(mae_valores):.4f}")
+            print(f"  Desvio Padrao: {np.std(mae_valores):.4f}")
+        
+        # Informações de detecção
+        print(f"\nDeteccao de Outliers:")
+        print(f"  Total de rodadas: {len(self.historico_metricas)}")
+        print(f"  Rodadas com deteccao: {len(self.outliers_detectados)}")
+        if self.outliers_detectados:
+            total_outliers = sum(len(d['clientes']) for d in self.outliers_detectados)
+            print(f"  Total de clientes rejeitados: {total_outliers}")
+            print(f"  Taxa de rejeicao: {(total_outliers / (len(self.clientes) * len(self.historico_metricas))):.2%}")
+        
+        print(f"\n{'='*70}\n")
 
 
 class ClienteFederado(ABC):
@@ -357,58 +545,98 @@ class ClienteMalicioso(ClienteFederado):
             print(f"  Coeficientes randomizados")
 
 
+def carregar_dataset_iris():
+    """Carrega e prepara o dataset Iris do CSV"""
+    print("\nCarregando Iris Dataset...")
+    
+    # Caminho relativo ao arquivo
+    csv_path = os.path.join(os.path.dirname(__file__), '..', 'data', 'iris', 'iris.csv')
+    
+    # Carrega o CSV
+    df = pd.read_csv(csv_path)
+    
+    # Features: sepal length, sepal width, petal length
+    # Target: petal width (regressão)
+    X = df[['sepal length (cm)', 'sepal width (cm)', 'petal length (cm)']]
+    y = df['petal width (cm)']
+    
+    print(f"  Amostras: {len(X)}")
+    print(f"  Features: {X.shape[1]} (sepal length, sepal width, petal length)")
+    print(f"  Target: petal width (regressao linear)")
+    print(f"  Range do target: [{y.min():.2f}, {y.max():.2f}]")
+    
+    return X, y
+
+
+def dividir_dados_clientes(X, y, n_clientes=3, validacao_size=0.2):
+    """Divide dados entre clientes e conjunto de validação"""
+    # Separar conjunto de validação global
+    X_train, X_val, y_train, y_val = train_test_split(
+        X, y, test_size=validacao_size, random_state=42
+    )
+    
+    # Dividir dados de treino entre clientes
+    indices = np.arange(len(X_train))
+    np.random.shuffle(indices)
+    
+    clientes_indices = np.array_split(indices, n_clientes)
+    
+    dados_clientes = []
+    for i, idx in enumerate(clientes_indices):
+        X_cliente = X_train.iloc[idx].reset_index(drop=True)
+        y_cliente = y_train.iloc[idx].reset_index(drop=True)
+        
+        df_cliente = X_cliente.copy()
+        df_cliente['target'] = y_cliente
+        
+        dados_clientes.append(df_cliente)
+        print(f"  Cliente {i+1}: {len(df_cliente)} amostras")
+    
+    return dados_clientes, (X_val.values, y_val.values)
+
+
 # Exemplo de uso
 if __name__ == "__main__":
-    print("="*50)
+    print("="*70)
     print("SISTEMA DE APRENDIZADO FEDERADO")
     print("Modelo: LinearRegression")
-    print("Com Deteccao de Outliers")
-    print("="*50)
+    print("Dataset: Iris (petal width prediction)")
+    print("Com Deteccao de Outliers (MAD)")
+    print("="*70)
     
-    # Gera dados sinteticos
-    np.random.seed(42)
-    n_samples = 1000
-    n_features = 4
+    # Carrega dataset Iris
+    X, y = carregar_dataset_iris()
     
-    # Cliente 1: Ataque em dados
-    dados1 = pd.DataFrame(
-        np.random.randn(n_samples, n_features),
-        columns=[f'x{i}' for i in range(n_features)]
-    )
-    dados1['y'] = 2*dados1['x0'] + 3*dados1['x1'] - dados1['x2'] + np.random.randn(n_samples)*0.5
+    # Divide dados entre clientes
+    print("\nDividindo dados entre clientes...")
+    dados_clientes, dados_validacao = dividir_dados_clientes(X, y, n_clientes=4)
     
-    # Cliente 2: Ataque em modelo
-    dados2 = pd.DataFrame(
-        np.random.randn(n_samples, n_features),
-        columns=[f'x{i}' for i in range(n_features)]
-    )
-    dados2['y'] = -dados2['x0'] + 2.5*dados2['x1'] + 0.8*dados2['x3'] + np.random.randn(n_samples)*0.5
+    # Cria servidor com dados de validação
+    servidor = ServidorFederado(max_rodadas=10, dados_validacao=dados_validacao)
     
-    # Cliente 3: Honesto (sem ataques) - para testar detecção
-    dados3 = pd.DataFrame(
-        np.random.randn(n_samples, n_features),
-        columns=[f'x{i}' for i in range(n_features)]
-    )
-    dados3['y'] = 1.5*dados3['x0'] + 2*dados3['x1'] + 0.5*dados3['x2'] + np.random.randn(n_samples)*0.5
-    
-    # Cria servidor
-    servidor = ServidorFederado(max_rodadas=5)
-    
-    # Adiciona clientes
+    # Adiciona clientes com diferentes perfis
+    print("\nConfigurando clientes:")
     servidor.adicionar_cliente(
-        ClienteMalicioso("Cliente_1_Malicioso", dados1, "y", "dados")
+        ClienteMalicioso("Cliente_1_Honesto", dados_clientes[0], "target", "nenhum")
     )
     servidor.adicionar_cliente(
-        ClienteMalicioso("Cliente_2_Malicioso", dados2, "y", "modelo_invertidos")
+        ClienteMalicioso("Cliente_2_Malicioso_Dados", dados_clientes[1], "target", "dados")
     )
     servidor.adicionar_cliente(
-        ClienteMalicioso("Cliente_3_Honesto", dados3, "y", "nenhum")
+        ClienteMalicioso("Cliente_3_Honesto", dados_clientes[2], "target", "nenhum")
+    )
+    servidor.adicionar_cliente(
+        ClienteMalicioso("Cliente_4_Malicioso_Modelo", dados_clientes[3], "target", "modelo_invertidos")
     )
     
     print(f"\nTotal de clientes: {len(servidor.clientes)}")
-    print(f"  - 2 clientes maliciosos (com ataques)")
-    print(f"  - 1 cliente honesto (tipo_ataque='nenhum')")
+    print(f"  - 2 clientes honestos")
+    print(f"  - 2 clientes maliciosos (1 ataque em dados, 1 ataque em modelo)")
     print(f"  - Criterio de convergencia: {servidor.criterio_convergencia}")
+    print(f"  - Conjunto de validacao: {len(dados_validacao[0])} amostras")
     
     # Executa treinamento
     servidor.executar_aprendizado_federado()
+    
+    # Gera relatório estatístico
+    servidor.gerar_relatorio_estatistico()

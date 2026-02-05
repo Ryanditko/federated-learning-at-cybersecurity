@@ -1,7 +1,6 @@
 # Mapa Visual da Documentação
 
 ## Estrutura para Storytelling
-
 ```
 DOCUMENTAÇÃO DO PROJETO
 │
