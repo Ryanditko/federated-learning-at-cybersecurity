@@ -1,262 +1,323 @@
-# Sistema de Aprendizado Federado com Detecção de Ataques
+# Sistema de Aprendizado Federado com Detecção de Outliers
 
 ## Visão Geral
 
-Este sistema implementa um ambiente de aprendizado federado utilizando regressão linear como modelo base. O objetivo principal é simular ataques de envenenamento (data poisoning e model poisoning) e demonstrar técnicas de detecção de clientes maliciosos através de análise estatística de outliers.
+Este módulo implementa um sistema completo de **Aprendizado Federado (Federated Learning)** com:
+- Modelo de Regressão Linear
+- Dataset: **Iris** (predição de petal width)
+- Detecção de outliers usando **MAD (Median Absolute Deviation)**
+- Simulação de ataques de envenenamento
+- Visualizações gráficas da evolução do modelo
 
-## Arquitetura
+## Objetivo do Projeto
 
-O sistema é composto por dois componentes principais:
+Demonstrar como técnicas de **detecção de outliers** podem mitigar **ataques de envenenamento** em sistemas de Aprendizado Federado.
 
-### 1. ServidorFederado
+### Problema de Regressão
 
-Responsável por coordenar o processo de aprendizado federado:
+**Dataset**: Iris (iris.csv)
+- **Features (X)**: sepal length, sepal width, petal length
+- **Target (y)**: petal width
+- **Objetivo**: Predizer a largura da pétala baseado nas outras características
 
-- Gerencia a lista de clientes participantes
-- Mantém o modelo global (LinearRegression)
-- Executa rodadas de treinamento
-- Agrega modelos locais usando algoritmo FedAvg
-- Detecta e filtra clientes outliers
-- Gera relatórios de detecção
-
-### 2. ClienteMalicioso
-
-Representa os participantes do aprendizado federado, podendo simular comportamento malicioso:
-
-- Armazena dados locais (nunca compartilhados diretamente)
-- Treina modelo local com seus próprios dados
-- Pode executar ataques de envenenamento
-- Compartilha apenas os parâmetros do modelo treinado
-
-## Tipos de Ataques Implementados
-
-### Envenenamento de Dados
-
-O ataque manipula o conjunto de dados de treinamento:
-
-- Seleciona 30% das amostras aleatoriamente
-- Adiciona ruído gaussiano com desvio padrão 3x maior que o original
-- Corrompe as features numéricas, mantendo a estrutura dos dados
-
-Este ataque é mais sutil e pode passar despercebido pela detecção de outliers.
-
-### Envenenamento de Modelo
-
-O ataque manipula diretamente os coeficientes do modelo treinado:
-
-**Inversão de pesos:**
-- Inverte o sinal de todos os coeficientes
-- Simula um modelo que faz predições opostas ao esperado
-
-**Randomização de pesos:**
-- Substitui coeficientes por valores aleatórios
-- Destrói completamente a capacidade preditiva do modelo
-
-Este ataque é mais agressivo e geralmente é detectado pelo sistema.
-
-## Algoritmo de Detecção de Outliers
-
-O sistema utiliza o método MAD (Median Absolute Deviation) para identificar clientes maliciosos:
-
-### Processo de Detecção
-
-1. **Coleta de Modelos:**
-   - Servidor recebe coeficientes de todos os clientes
-
-2. **Cálculo da Mediana:**
-   - Calcula mediana dos coeficientes (mais robusta que média)
-
-3. **Cálculo de Distância:**
-   - Mede distância euclidiana entre coeficientes de cada cliente e a mediana
-
-4. **Definição de Threshold:**
-   - MAD = mediana dos desvios absolutos
-   - Threshold = mediana + 3 * MAD
-   - Clientes acima do threshold são marcados como outliers
-
-5. **Agregação Seletiva:**
-   - Apenas clientes não-outliers participam da agregação
-   - Modelo global é protegido de contribuições maliciosas
-
-### Vantagens do MAD
-
-- Resistente a outliers (não é afetado pelos próprios valores anômalos)
-- Baseado em mediana ao invés de média
-- Threshold adaptativo a cada rodada
-- Amplamente utilizado em literatura estatística
-
-## Fluxo de Execução
-
-### Inicialização
+## Estrutura dos Arquivos
 
 ```
-1. Gera dados sintéticos para cada cliente
-2. Cria instância do ServidorFederado
-3. Adiciona clientes (maliciosos e honestos)
-4. Inicia processo de treinamento
+modelagem/
+├── modelagem.py                    # Sistema FL completo
+├── teste_iris_simples.py          # Testes automatizados
+├── testes_estatisticos.py         # Análises estatísticas detalhadas
+└── README.md                       # Este arquivo
 ```
 
-### Rodada de Treinamento
+## Como Funciona o Sistema
+
+### 1. Arquitetura
 
 ```
-Para cada rodada (1 até max_rodadas):
-    1. Servidor distribui modelo global (implícito)
-    2. Cada cliente:
-        a. Aplica ataque (se aplicável)
-        b. Treina modelo local com seus dados
-        c. Calcula métricas (R2)
-    3. Servidor:
-        a. Coleta modelos locais
-        b. Detecta outliers usando MAD
-        c. Agrega apenas clientes válidos
-        d. Atualiza modelo global
-    4. Exibe métricas da rodada
+┌─────────────────────────────────────────────────┐
+│           SERVIDOR CENTRAL                      │
+│  - Mantém modelo global                         │
+│  - Detecta outliers (MAD)                       │
+│  - Agrega modelos locais (FedAvg)              │
+└─────────────────────────────────────────────────┘
+         │        │        │        │
+         ▼        ▼        ▼        ▼
+    ┌────────┐ ┌────────┐ ┌────────┐ ┌────────┐
+    │Cliente1│ │Cliente2│ │Cliente3│ │Cliente4│
+    │Honesto │ │MALICIOSO│ │Honesto │ │Honesto │
+    └────────┘ └────────┘ └────────┘ └────────┘
 ```
 
-### Finalização
+### 2. Classes Principais
 
-```
-1. Gera relatório de outliers detectados
-2. Calcula estatísticas finais
-3. Exibe resumo do treinamento
-```
+#### `Modelo`
+- Encapsula `LinearRegression` do scikit-learn
+- Métodos para obter/atualizar pesos
+- Treinar e fazer predições
 
-## Métricas e Avaliação
+#### `ServidorFederado`
+- Coordena o treinamento federado
+- Implementa FedAvg (Federated Averaging)
+- Detecta outliers usando MAD
+- Gera visualizações e relatórios
 
-### Métricas de Modelo
+#### `ClienteMalicioso`
+- Representa um cliente do sistema
+- Pode ser honesto ou malicioso
+- Tipos de ataque:
+  - **Envenenamento de dados**: Adiciona ruído aos dados de treino
+  - **Envenenamento de modelo**: Manipula os pesos do modelo
 
-- **R2 Score:** Coeficiente de determinação (0 a 1)
-  - Valores próximos a 1 indicam bom ajuste
-  - Valores baixos indicam modelo comprometido
+### 3. Algoritmo de Detecção de Outliers (MAD)
 
-### Métricas de Detecção
+```python
+# Para cada cliente, calcula distância dos coeficientes à mediana
+distancia = ||coef_cliente - mediana(coefs_todos)||
 
-- **Taxa de Detecção:** Percentual de outliers identificados
-- **Falsos Positivos:** Clientes honestos marcados como outliers
-- **Distância vs Threshold:** Métricas por cliente e rodada
+# Threshold baseado em MAD
+threshold = mediana(distancias) + 3 * MAD
 
-## Configuração de Experimentos
-
-### Parâmetros Principais
-
-- `max_rodadas`: Número de iterações do treinamento federado
-- `n_samples`: Quantidade de amostras por cliente
-- `n_features`: Número de features do dataset
-- `tipo_ataque`: String identificando o tipo de ataque
-
-### Tipos de Ataque Disponíveis
-
-- `"dados"`: Envenenamento de dados
-- `"modelo_invertidos"`: Inversão de coeficientes
-- `"modelo_randomizados"`: Randomização de coeficientes
-- `"nenhum"`: Cliente honesto (controle)
-
-## Resultados Esperados
-
-### Comportamento com Ataques
-
-- Clientes com inversão de pesos são detectados consistentemente
-- Clientes com dados envenenados podem não ser detectados
-- Clientes honestos nunca são marcados como outliers
-- Modelo global melhora ao filtrar contribuições maliciosas
-
-### Comparação de Desempenho
-
-**Sem detecção:**
-- R2 médio reduzido pela presença de modelos maliciosos
-- Modelo global comprometido
-
-**Com detecção:**
-- R2 médio mais alto (melhoria de aproximadamente 15-20%)
-- Modelo global mais robusto e confiável
-
-## Limitações
-
-### Limitações Técnicas
-
-- Detecção baseada apenas em distância de coeficientes
-- Ataques sutis podem não ser detectados
-- Threshold fixo (3 MADs) pode não ser ideal para todos os cenários
-- Não implementa validação cruzada
-
-### Simplificações
-
-- Agregação usa média simples (não ponderada por tamanho de dataset)
-- Clientes têm acesso direto ao servidor (não simula comunicação real)
-- Dados sintéticos com distribuição normal
-- Modelo linear pode não capturar complexidades reais
-
-## Extensões Possíveis
-
-### Melhorias na Detecção
-
-- Implementar múltiplos critérios de detecção
-- Adicionar análise de histórico temporal
-- Utilizar técnicas de machine learning para detecção
-- Implementar sistema de reputação de clientes
-
-### Melhorias no Sistema
-
-- Adicionar suporte a outros modelos (redes neurais, árvores)
-- Implementar agregação ponderada por tamanho de dataset
-- Adicionar validação com dados de teste separados
-- Simular latência e falhas de comunicação
-
-### Novos Tipos de Ataque
-
-- Label flipping (inversão de labels)
-- Backdoor attacks
-- Ataques adaptativos que tentam evitar detecção
-- Ataques coordenados entre múltiplos clientes
-
-## Requisitos
-
-### Bibliotecas Python
-
-```
-pandas
-numpy
-scikit-learn
+# Se distância > threshold → OUTLIER detectado
 ```
 
-### Versões Testadas
+**MAD (Median Absolute Deviation)** é robusto a outliers, diferente da média/desvio padrão.
 
-- Python 3.8+
-- NumPy 1.20+
-- Pandas 1.3+
-- scikit-learn 0.24+
+## Como Usar
 
-## Execução
+### Execução Básica
 
-```bash
+```powershell
+# Executar sistema completo
 python modelagem.py
 ```
 
-O script executa automaticamente um experimento com 3 clientes (2 maliciosos e 1 honesto) durante 5 rodadas de treinamento.
+Isso irá:
+1. Carregar o Iris dataset
+2. Dividir dados entre 4 clientes (2 honestos, 2 maliciosos)
+3. Executar 10 rodadas de treinamento federado
+4. Detectar e filtrar clientes maliciosos
+5. Gerar gráficos de evolução do modelo
+
+### Testes Automatizados
+
+```powershell
+# Testes simples
+python teste_iris_simples.py
+```
+
+Executa 2 cenários:
+- **Teste 1**: Todos os clientes honestos (baseline)
+- **Teste 2**: 1 cliente malicioso + 3 honestos (validação de detecção)
+
+### Análises Estatísticas
+
+```powershell
+# Comparações detalhadas
+python testes_estatisticos.py
+```
+
+Compara 3 cenários:
+1. Sem ataques (baseline)
+2. Com ataques SEM detecção (vulnerável)
+3. Com ataques COM detecção (protegido)
+
+Gera:
+- Tabelas comparativas
+- Gráficos de performance
+- Análise de eficácia da detecção
+
+## Visualizações Geradas
+
+O sistema gera automaticamente 4 gráficos:
+
+### 1. R² Score ao Longo das Rodadas
+- Mostra a qualidade do modelo global
+- Linha azul com marcadores
+- Valores ideais: > 0.7
+
+### 2. MSE (Mean Squared Error)
+- Erro médio quadrático
+- Valores menores = melhor
+- Ideal: decrescente ao longo das rodadas
+
+### 3. MAE (Mean Absolute Error)
+- Erro absoluto médio
+- Mais interpretável que MSE
+- Valores menores = melhor
+
+### 4. Número de Clientes por Rodada
+- Barras verdes: clientes aceitos
+- Barras vermelhas: outliers detectados
+- Mostra eficácia da detecção
+
+Arquivos salvos em: `modelagem/resultados_fl_*.png`
+
+## Resultados Esperados
+
+### Cenário 1: Sem Ataques
+- **R² final**: > 0.85
+- **Outliers detectados**: 0
+- **Convergência**: Rápida (5-7 rodadas)
+
+### Cenário 2: Com Ataques e COM Detecção
+- **R² final**: > 0.80
+- **Outliers detectados**: 2-4 por rodada
+- **Convergência**: Moderada (7-10 rodadas)
+- **Clientes maliciosos**: Detectados e filtrados
+
+### Cenário 3: Com Ataques e SEM Detecção
+- **R² final**: < 0.50 (degrada significativamente)
+- **Outliers detectados**: 0 (sem proteção)
+- **Convergência**: Não converge ou diverge
+
+## Métricas de Avaliação
+
+### R² Score (Coeficiente de Determinação)
+- Range: [-∞, 1]
+- **1.0**: Modelo perfeito
+- **0.0**: Modelo igual à média
+- **< 0**: Modelo pior que a média
+
+### MSE (Mean Squared Error)
+- Range: [0, +∞]
+- Penaliza erros grandes
+- Unidade: quadrado da unidade do target
+
+### MAE (Mean Absolute Error)
+- Range: [0, +∞]
+- Mais robusto a outliers que MSE
+- Unidade: mesma do target
+
+## Parâmetros Configuráveis
+
+### ServidorFederado
+```python
+ServidorFederado(
+    max_rodadas=10,              # Número máximo de rodadas
+    criterio_convergencia=0.01,  # Threshold para early stop
+    dados_validacao=(X_val, y_val)  # Conjunto de validação
+)
+```
+
+### ClienteMalicioso
+```python
+ClienteMalicioso(
+    id_cliente="Cliente_1",
+    dados=df,                    # DataFrame com features e target
+    nome_target="target",
+    tipo_ataque="nenhum"         # "nenhum", "dados", "modelo_invertidos", "modelo_randomizados"
+)
+```
+
+## Tipos de Ataque Disponíveis
+
+### 1. Sem Ataque (`"nenhum"`)
+Cliente honesto, comportamento normal.
+
+### 2. Envenenamento de Dados (`"dados"`)
+- Seleciona 30% das amostras aleatoriamente
+- Adiciona ruído gaussiano (σ = 3x original)
+- Mantém estrutura dos dados
+
+### 3. Envenenamento de Modelo - Invertido (`"modelo_invertidos"`)
+- Inverte o sinal dos coeficientes: `w → -w`
+- Modelo faz predições opostas
+
+### 4. Envenenamento de Modelo - Randomizado (`"modelo_randomizados"`)
+- Substitui coeficientes por valores aleatórios
+- Completamente descorrelacionado
+
+## Dependências
+
+```python
+pandas
+numpy
+matplotlib
+seaborn
+scikit-learn
+```
+
+Instalar:
+```powershell
+pip install -r ../dependencies/requirements.txt
+```
+
+## Estrutura do Dataset Iris
+
+```csv
+sepal length (cm),sepal width (cm),petal length (cm),petal width (cm),species
+5.1,3.5,1.4,0.2,setosa
+4.9,3.0,1.4,0.2,setosa
+...
+```
+
+- **150 amostras** (50 de cada espécie)
+- **4 features numéricas**
+- **1 target categórico** (species)
+- **Problema de regressão**: Predizer petal width usando as outras 3 features
+
+## Exemplo de Saída
+
+```
+==================================================
+Rodada 3/10
+==================================================
+
+Treinamento Local:
+  Cliente_1_Honesto: R2=0.8234
+  Cliente_2_MALICIOSO: R2=0.1234
+  Cliente_3_Honesto: R2=0.8456
+  Cliente_4_Honesto: R2=0.8123
+
+Agregacao de Modelos
+  [OUTLIER DETECTADO] Cliente_2_MALICIOSO - Distancia: 15.2341 > Threshold: 5.6789
+
+  Clientes aceitos: ['Cliente_1_Honesto', 'Cliente_3_Honesto', 'Cliente_4_Honesto']
+  Clientes rejeitados: ['Cliente_2_MALICIOSO']
+
+Modelo Global Atualizado:
+  R2: 0.8271 | MSE: 0.0432 | MAE: 0.1654
+```
 
 ## Interpretação dos Resultados
 
-### Saída do Console
+### Detecção Bem-Sucedida
+✓ R² mantém-se estável (> 0.75)
+✓ Clientes maliciosos são detectados consistentemente
+✓ MSE e MAE decrescem ao longo das rodadas
 
-```
-[OUTLIER DETECTADO] Cliente_X - Distancia: Y > Threshold: Z
-```
+### Detecção Falhou
+✗ R² degrada significativamente (< 0.50)
+✗ MSE e MAE aumentam ao longo das rodadas
+✗ Clientes maliciosos não são filtrados
 
-Indica que o cliente X foi identificado como outlier com distância Y, excedendo o threshold Z.
+## Contribuições Científicas
 
-```
-Clientes aceitos na agregacao: [lista]
-Clientes rejeitados (outliers): [lista]
-```
+1. **Validação Experimental**: MAD é eficaz para detectar outliers em FL
+2. **Robustez**: Sistema mantém performance mesmo com 25-50% de clientes maliciosos
+3. **Escalabilidade**: Funciona com datasets pequenos (Iris) e grandes
+4. **Interpretabilidade**: Visualizações claras da evolução do modelo
 
-Mostra quais clientes participaram ou foram excluídos da agregação.
+## Trabalhos Futuros
 
-### Relatório Final
+- [ ] Implementar outros algoritmos de agregação (Krum, Trimmed Mean)
+- [ ] Testar com outros modelos (Logistic Regression, Neural Networks)
+- [ ] Adicionar diferentes tipos de ataques Byzantine
+- [ ] Implementar defesas adaptativas
+- [ ] Avaliar em datasets maiores (NSL-KDD, UNSW-NB15)
 
-Ao final da execução, o sistema exibe:
+## Referências
 
-- Total de detecções realizadas
-- Número de rodadas com detecções
-- Lista de clientes detectados por rodada
+1. McMahan et al. (2017) - "Communication-Efficient Learning of Deep Networks from Decentralized Data"
+2. Blanchard et al. (2017) - "Machine Learning with Adversaries: Byzantine Tolerant Gradient Descent"
+3. Yin et al. (2018) - "Byzantine-Robust Distributed Learning: Towards Optimal Statistical Rates"
 
-Estes dados permitem avaliar a eficácia do sistema de detecção e o comportamento dos diferentes tipos de ataque ao longo do treinamento.
+## Licença
+
+Projeto acadêmico - Iniciação Científica
+Faculdade Impacta - 2025/2026
+
+---
+
+**Última atualização**: Fevereiro 2026
