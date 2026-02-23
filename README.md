@@ -348,7 +348,7 @@ Este projeto contribui para o avanço do conhecimento em:
 **Área**: Ciência da Computação / Cibersegurança / Machine Learning  
 **Período**: 2024-2026
 
-**Repositório**: [github.com/Ryanditko/IC-aprendizado-federado-e-machine-learning-em-cybersecurity](https://github.com/Ryanditko/IC-aprendizado-federado-e-machine-learning-em-cybersecurity)
+**Repositório**: [github.com/Ryanditko/federated-learning-at-cybersecurity](https://github.com/Ryanditko/federated-learning-at-cybersecurity)
 
 ---
 
@@ -364,7 +364,7 @@ Este projeto é de natureza **acadêmica** e destinado a fins **educacionais e d
 
 Projeto desenvolvido no âmbito do programa de Iniciação Científica
 
-![GitHub Stars](https://img.shields.io/github/stars/Ryanditko/IC-aprendizado-federado-e-machine-learning-em-cybersecurity?style=social)
-![GitHub Forks](https://img.shields.io/github/forks/Ryanditko/IC-aprendizado-federado-e-machine-learning-em-cybersecurity?style=social)
+![GitHub Stars](https://img.shields.io/github/stars/Ryanditko/federated-learning-at-cybersecurity?style=social)
+![GitHub Forks](https://img.shields.io/github/forks/Ryanditko/federated-learning-at-cybersecurity?style=social)
 
 </div>
