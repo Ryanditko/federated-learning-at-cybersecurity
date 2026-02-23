@@ -265,10 +265,6 @@ O projeto gera visualizações detalhadas para análise dos experimentos, inclui
 
 ---
 
-## Documentação Técnica
-
----
-
 ## Contribuições Científicas
 
 Este projeto contribui para o avanço do conhecimento em:
