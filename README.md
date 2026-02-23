@@ -46,57 +46,15 @@ Investigar e avaliar estratégias de detecção, prevenção e mitigação de at
 
 ---
 
-## Estrutura do Repositório
+## Estrutura do Projeto
 
-```plaintext
-.
-├── README.md                              # Documentação principal
-│
-├── project/
-│   ├── code/
-│   │   ├── scripts-notebooks/             # Scripts Python principais
-│   │   │   ├── run_federated_learning_bank_distribuido.py
-│   │   │   ├── run_poisoning_attack_bank.py
-│   │   │   ├── run_poisoning_attack_iris.py
-│   │   │   ├── run_analise_por_classe_iris.py
-│   │   │   ├── run_visualizacao_completa_poisoning.py
-│   │   │   └── run_cyber_outlier_detection.py
-│   │   │
-│   │   └── scripts-datasets/              # Datasets organizados
-│   │       ├── iris-dataset/
-│   │       ├── penguin-dataset/
-│   │       ├── cyber-outlier-detection/
-│   │       └── nsl-kdd/
-│   │
-│   ├── data/                               # Datasets brutos
-│   │   ├── bank-marketing/
-│   │   ├── iris/
-│   │   ├── cyber-outlier-detection/
-│   │   └── nsl-kdd/
-│   │
-│   ├── notebooks/                          # Jupyter Notebooks
-│   │   ├── iris/
-│   │   ├── penguin/
-│   │   ├── cyber-outlier-detection/
-│   │   └── nsl-kdd/
-│   │
-│   ├── modelagem/                          # Modelagem e resultados
-│   │   ├── apresentação/                   # Visualizações geradas
-│   │   ├── pipeline/
-│   │   └── primeiros_resultados/
-│   │
-│   ├── docs/                               # Documentação técnica
-│   │   ├── 01-introducao/
-│   │   ├── 02-fundamentacao/
-│   │   ├── 03-arquitetura/
-│   │   ├── 04-implementacao/
-│   │   ├── 05-experimentos/
-│   │   ├── 06-guias/
-│   │   └── 07-referencias/
-│   │
-│   └── dependencies/
-│       └── requirements.txt               # Dependências Python
-```
+O projeto está organizado em módulos que facilitam o desenvolvimento e a experimentação:
+
+- **`code/`** - Implementações de algoritmos e experimentos
+- **`data/`** - Datasets utilizados nos experimentos
+- **`notebooks/`** - Análises exploratórias e protótipos
+- **`modelagem/`** - Modelos desenvolvidos e resultados obtidos
+- **`docs/`** - Documentação técnica e referências bibliográficas
 
 ---
 
@@ -233,88 +191,6 @@ O projeto implementa e compara múltiplas técnicas de detecção de outliers:
 
 ---
 
-## Como Executar
-
-### Pré-requisitos
-
-```bash
-Python 3.8+
-pip
-Git
-```
-
-### Instalação
-
-```powershell
-# Clone o repositório
-git clone https://github.com/Ryanditko/IC-aprendizado-federado-e-machine-learning-em-cybersecurity.git
-cd IC-aprendizado-federado-e-machine-learning-em-cybersecurity
-
-# Navegue até a pasta de dependências
-cd project/dependencies
-
-# Instale as dependências
-pip install -r requirements.txt
-```
-
-### Execução dos Experimentos
-
-#### Aprendizado Federado com Bank Marketing
-
-```powershell
-cd project/code/scripts-notebooks
-
-# Executa experimento completo com dados distribuídos
-python run_federated_learning_bank_distribuido.py
-
-# Gera 7 visualizações:
-# - Comparação de métricas globais
-# - Convergência por rodada
-# - Análise por classe
-# - Evolução de matrizes de confusão
-# - Tabela comparativa
-# - Impacto do ataque
-# - Desempenho por cliente
-```
-
-#### Poisoning Attack no Iris Dataset
-
-```powershell
-# Ataque completo com análise detalhada
-python run_poisoning_attack_iris.py
-
-# Análise por classe
-python run_analise_por_classe_iris.py
-
-# Visualização completa
-python run_visualizacao_completa_poisoning.py
-
-# Demonstração com amostra reduzida
-python run_amostra_poisoning_iris.py
-```
-
-#### Detecção de Outliers em Ameaças Cibernéticas
-
-```powershell
-# Avalia 5 técnicas de detecção de outliers
-python run_cyber_outlier_detection.py
-```
-
-#### Notebooks Jupyter
-
-```powershell
-# Inicia Jupyter Notebook
-cd project/notebooks
-jupyter notebook
-
-# Acesse:
-# - iris/ : Experimentos com Iris
-# - cyber-outlier-detection/ : Detecção de ameaças
-# - nsl-kdd/ : Detecção de intrusão
-```
-
----
-
 ## Arquitetura de Aprendizado Federado
 
 ### Componentes Principais
@@ -385,88 +261,11 @@ Em sistemas de detecção de ameaças federados (ex: antivírus distribuído, de
 
 ## Visualizações e Análises
 
-### Bank Marketing - Aprendizado Federado Distribuído
-
-**Visualizações geradas** (`project/modelagem/apresentação/`):
-
-1. **bank_fl_distribuido_global.png**: Comparação de métricas globais (Acurácia, F1-Score, Precisão, Recall, AUC-ROC, Loss)
-2. **bank_convergencia_por_rodada.png**: Evolução detalhada ao longo das rodadas federadas
-3. **bank_analise_por_classe.png**: Performance separada por classe (depósito/não depósito)
-4. **bank_matriz_confusao_evolutiva.png**: Evolução das matrizes de confusão em diferentes momentos
-5. **bank_tabela_comparativa.png**: Tabela resumo comparando cenários normal e atacado
-6. **bank_impacto_ataque.png**: Análise de severidade do ataque com gauge visual
-7. **bank_desempenho_clientes.png**: Métricas individuais por cliente (identifica cliente malicioso)
-
-### Iris Dataset - Poisoning Attack
-
-**Visualizações principais**:
-
-1. **analise_acuracia_por_classe.png**: Comparação de acurácia por espécie
-2. **analise_metricas_completas_por_classe.png**: Múltiplas métricas por espécie
-3. **analise_matriz_confusao_evolutiva.png**: Evolução temporal das matrizes de confusão
-4. **analise_tabela_comparativa_por_classe.png**: Tabela detalhada com impacto por classe
-5. **analise_impacto_relativo_por_classe.png**: Degradação percentual por espécie
-
-### Demonstração com Amostra Reduzida
-
-**Visualizações para apresentação**:
-
-1. **amostra_desempenho_clientes.png**: Comparação entre clientes honestos e maliciosos
-2. **amostra_evolucao_metricas.png**: Convergência ao longo das rodadas
-3. **amostra_impacto_por_rodada.png**: Degradação progressiva do modelo
-4. **amostra_matriz_confusao_comparativa.png**: Comparação visual Normal vs Envenenado
-5. **amostra_tabela_resumo.png**: Resumo executivo dos resultados
+O projeto gera visualizações detalhadas para análise dos experimentos, incluindo gráficos de convergência, matrizes de confusão evolutivas, comparações de métricas e análises por classe. Todas as visualizações são salvas automaticamente na pasta `project/modelagem/apresentação/`.
 
 ---
 
-## Documentação Técnica Completa
-
-Para detalhes técnicos aprofundados, consulte `project/docs/`:
-
-### Estrutura da Documentação
-
-**01-introducao/**
-- Contexto do problema
-- Motivação e relevância
-- Perguntas de pesquisa
-
-**02-fundamentacao/**
-- Aprendizado Federado
-- Ataques de Envenenamento
-- Detecção de Outliers
-- Revisão da Literatura
-
-**03-arquitetura/**
-- Diagrama UML do sistema
-- Componentes e interações
-- Fluxo de dados
-
-**04-implementacao/**
-- Código-fonte comentado
-- Padrões de projeto utilizados
-- Decisões técnicas
-
-**05-experimentos/**
-- Metodologia experimental
-- Resultados detalhados
-- Análise estatística
-
-**06-guias/**
-- Guia de apresentação para o professor
-- Storytelling dos experimentos
-- Resumo rápido de gráficos
-
-**07-referencias/**
-- Bibliografia completa
-- Papers referenciados
-- Recursos adicionais
-
-### Arquivos Especiais
-
-- **EXPERIMENTO_ENVENENAMENTO.md**: Documentação completa do experimento principal
-- **GUIA_APRESENTACAO_PROFESSOR.md**: Roteiro para defesa
-- **STORYTELLING.md**: Narrativa dos resultados
-- **RESUMO_RAPIDO_GRAFICOS.md**: Interpretação das visualizações
+## Documentação Técnica
 
 ---
 
