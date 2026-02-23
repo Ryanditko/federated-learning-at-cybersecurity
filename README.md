@@ -1,4 +1,4 @@
-# MITIGAÇÃO DE ATAQUES POR ENVENENAMENTO EM APRENDIZADO FEDERADO
+# Mitigação De Ataques Por Envenamento Em Aprendizado Federado
 
 ![Federated Learning Architecture](https://upload.wikimedia.org/wikipedia/commons/1/11/Centralized_federated_learning_protocol.png)
 
@@ -152,64 +152,45 @@ Análise através de múltiplos datasets:
 
 ---
 
-## Principais Resultados
+## Principais Contribuições
 
-### Poisoning Attack no Bank Marketing Dataset
+Este projeto demonstra que **técnicas de detecção de outliers** são eficazes para identificar **agentes maliciosos** em sistemas de aprendizado federado, contribuindo para a segurança de sistemas de ML distribuído.
 
-Experimento com **aprendizado federado distribuído** demonstrando impacto de cliente malicioso:
+### Experimentos Implementados
 
-**Configuração**:
-- 3 clientes (1 malicioso = 33% de participação)
-- Dataset: Bank Marketing (4,521 amostras, 2 classes)
-- Ataque: Sign Flipping com taxa 90%
-- Rodadas: 12 iterações federadas
-- Agregação: FedAvg (média aritmética)
+#### Poisoning Attack em Datasets Reais
 
-**Resultados**:
-
-| Métrica | Normal | Envenenado | Degradação |
-|---------|--------|------------|------------|
-| **Acurácia Global** | 88.06% | 53.23% | **-34.84%** |
-| **F1-Score** | 0.00% | 17.21% | -17.21% |
-| **Precisão** | 0.00% | 11.07% | -11.07% |
-| **Recall** | 0.00% | 35.56% | -35.56% |
-| **AUC-ROC** | 0.4904 | 0.4661 | -0.0243 |
-| **Loss** | 4.2818 | 6.8923 | +2.6105 |
-
-**Severidade do Ataque**: **CRÍTICA** (degradação > 30%)
-
-**Visualizações Geradas**:
-- 7 gráficos completos de análise (convergência, matriz de confusão, impacto por classe, desempenho de clientes)
-
-### Detecção de Outliers em Ameaças Cibernéticas
-
-Avaliação de técnicas de detecção de anomalias aplicadas a ameaças cibernéticas:
-
-| Técnica | Acurácia | Precisão | Recall | F1-Score |
-|---------|----------|----------|--------|----------|
-| **Elliptic Envelope** | **99.52%** | **97.62%** | **99.52%** | **98.56%** |
-| Isolation Forest | 97.14% | 85.71% | 97.14% | 91.09% |
-| Local Outlier Factor | 95.24% | 80.00% | 95.24% | 86.96% |
-| One-Class SVM | 90.48% | 65.52% | 90.48% | 76.00% |
-| DBSCAN | 85.71% | 55.56% | 85.71% | 67.57% |
-
-**Conclusão**: Técnicas de detecção de outliers demonstraram alta eficácia (85-99% de acurácia) na identificação de agentes maliciosos, validando sua aplicabilidade como mecanismo de defesa em aprendizado federado.
-
-### Poisoning Attack no Iris Dataset
-
-Experimento clássico demonstrando impacto em classificação multi-classe:
-
-**Configuração**:
-- 3 espécies de íris (setosa, versicolor, virginica)
-- 150 amostras, 4 features
+**Bank Marketing Dataset**:
+- Experimento com aprendizado federado distribuído
+- Simulação de cliente malicioso em ambiente multi-cliente
 - Ataque: Sign Flipping Attack
+- Demonstra impacto crítico na performance do modelo global
+- Análise detalhada de degradação de métricas
 
-**Visualizações**:
-- Análise de acurácia por classe
-- Evolução de métricas por rodada
-- Matriz de confusão evolutiva
-- Tabela comparativa detalhada
-- Impacto relativo por classe
+**Iris Dataset**:
+- Experimento clássico em classificação multi-classe
+- Avaliação de impacto por classe
+- Análise evolutiva ao longo das rodadas federadas
+- Visualizações comparativas entre cenários normal e atacado
+
+### Técnicas de Detecção Avaliadas
+
+O projeto implementa e compara múltiplas técnicas de detecção de outliers:
+
+- **Elliptic Envelope**: Modelo gaussiano multivariado
+- **Isolation Forest**: Detecção baseada em isolamento aleatório
+- **Local Outlier Factor (LOF)**: Análise de densidade local
+- **One-Class SVM**: Fronteira de decisão em alta dimensão
+- **DBSCAN**: Clustering baseado em densidade
+
+**Aplicação**: Todas as técnicas foram validadas em contexto de detecção de ameaças cibernéticas e identificação de clientes maliciosos em aprendizado federado, demonstrando alta eficácia na proteção de sistemas distribuídos.
+
+### Tipos de Ataques Simulados
+
+- **Sign Flipping Attack**: Inversão e amplificação de pesos do modelo
+- **Gradient Manipulation**: Corrupção de gradientes durante treinamento
+- **Model Poisoning**: Envenenamento após treinamento local
+- **Byzantine Attacks**: Comportamento adversário coordenado
 
 ---
 
@@ -362,9 +343,9 @@ jupyter notebook
 ```
 
 **Técnicas de Corrupção Implementadas**:
-- **Sign Flipping**: Inverte sinal dos pesos e amplifica (`-w * 1.9`)
-- **Gradient Manipulation**: Altera direção do gradiente
-- **Random Noise**: Adiciona ruído gaussiano aos pesos
+- **Sign Flipping**: Inverte sinal dos pesos e amplifica por fator multiplicativo
+- **Gradient Manipulation**: Altera direção do gradiente de descida
+- **Random Noise**: Adiciona ruído gaussiano aos pesos do modelo
 
 ---
 
@@ -383,22 +364,22 @@ Em sistemas de detecção de ameaças federados (ex: antivírus distribuído, de
 
 1. **Coleta de Atualizações**: Servidor recebe modelos de todos os clientes
 2. **Extração de Features**: Converte pesos em vetores de características
-3. **Detecção de Outliers**: Aplica Elliptic Envelope / Isolation Forest
+3. **Detecção de Outliers**: Aplica técnicas de detecção de anomalias
 4. **Filtragem**: Remove clientes identificados como outliers
 5. **Agregação Robusta**: FedAvg apenas com clientes confiáveis
-6. **Validação**: Verifica melhoria na performance global
+6. **Validação**: Avalia performance do modelo global
 
-**Técnicas Validadas**:
+**Técnicas de Detecção Comparadas**:
 
-| Técnica | Vantagens | Desvantagens | Acurácia |
-|---------|-----------|--------------|----------|
-| **Elliptic Envelope** | Alta precisão, rápido | Assume distribuição gaussiana | 99.52% |
-| **Isolation Forest** | Não paramétrico, escalável | Sensível a hiperparâmetros | 97.14% |
-| **LOF** | Detecta outliers locais | Alto custo computacional | 95.24% |
-| **One-Class SVM** | Robusto em alta dimensão | Difícil ajuste de parâmetros | 90.48% |
-| **DBSCAN** | Sem pré-definir clusters | Sensível a densidade | 85.71% |
+| Técnica | Vantagens | Desvantagens | Adequação |
+|---------|-----------|--------------|-----------|
+| **Elliptic Envelope** | Alta precisão, rápido | Assume distribuição gaussiana | Ambientes controlados |
+| **Isolation Forest** | Não paramétrico, escalável | Sensível a hiperparâmetros | Produção escalável |
+| **LOF** | Detecta outliers locais | Alto custo computacional | Datasets pequenos |
+| **One-Class SVM** | Robusto em alta dimensão | Difícil ajuste de parâmetros | Alta dimensionalidade |
+| **DBSCAN** | Sem pré-definir clusters | Sensível a densidade | Dados com clusters naturais |
 
-**Recomendação**: **Elliptic Envelope** para ambientes controlados, **Isolation Forest** para produção escalável.
+**Resultados**: Todas as técnicas demonstraram eficácia na detecção de agentes maliciosos, com trade-offs entre precisão e custo computacional.
 
 ---
 
@@ -406,35 +387,35 @@ Em sistemas de detecção de ameaças federados (ex: antivírus distribuído, de
 
 ### Bank Marketing - Aprendizado Federado Distribuído
 
-**7 visualizações geradas** (`project/modelagem/apresentação/`):
+**Visualizações geradas** (`project/modelagem/apresentação/`):
 
-1. **bank_fl_distribuido_global.png**: Comparação de 6 métricas (Acurácia, F1, Precisão, Recall, AUC, Loss)
-2. **bank_convergencia_por_rodada.png**: Evolução detalhada por rodada federada
-3. **bank_analise_por_classe.png**: Performance separada por classe (Não/Sim depósito)
-4. **bank_matriz_confusao_evolutiva.png**: Matrizes de confusão em 4 momentos (rodadas 1, 4, 8, 12)
-5. **bank_tabela_comparativa.png**: Tabela resumo com degradações
-6. **bank_impacto_ataque.png**: Análise de severidade e gauge de impacto
-7. **bank_desempenho_clientes.png**: Acurácia, F1-Score e Loss por cliente (destaca malicioso)
+1. **bank_fl_distribuido_global.png**: Comparação de métricas globais (Acurácia, F1-Score, Precisão, Recall, AUC-ROC, Loss)
+2. **bank_convergencia_por_rodada.png**: Evolução detalhada ao longo das rodadas federadas
+3. **bank_analise_por_classe.png**: Performance separada por classe (depósito/não depósito)
+4. **bank_matriz_confusao_evolutiva.png**: Evolução das matrizes de confusão em diferentes momentos
+5. **bank_tabela_comparativa.png**: Tabela resumo comparando cenários normal e atacado
+6. **bank_impacto_ataque.png**: Análise de severidade do ataque com gauge visual
+7. **bank_desempenho_clientes.png**: Métricas individuais por cliente (identifica cliente malicioso)
 
 ### Iris Dataset - Poisoning Attack
 
-**5 visualizações principais**:
+**Visualizações principais**:
 
-1. **analise_acuracia_por_classe.png**: Acurácia comparativa por espécie
-2. **analise_metricas_completas_por_classe.png**: 4 métricas por espécie
-3. **analise_matriz_confusao_evolutiva.png**: Evolução temporal das matrizes
-4. **analise_tabela_comparativa_por_classe.png**: Tabela detalhada por classe
+1. **analise_acuracia_por_classe.png**: Comparação de acurácia por espécie
+2. **analise_metricas_completas_por_classe.png**: Múltiplas métricas por espécie
+3. **analise_matriz_confusao_evolutiva.png**: Evolução temporal das matrizes de confusão
+4. **analise_tabela_comparativa_por_classe.png**: Tabela detalhada com impacto por classe
 5. **analise_impacto_relativo_por_classe.png**: Degradação percentual por espécie
 
-### Amostra Reduzida - Demonstração
+### Demonstração com Amostra Reduzida
 
-**5 visualizações para apresentação**:
+**Visualizações para apresentação**:
 
-1. **amostra_desempenho_clientes.png**: Comparação entre 3 clientes
+1. **amostra_desempenho_clientes.png**: Comparação entre clientes honestos e maliciosos
 2. **amostra_evolucao_metricas.png**: Convergência ao longo das rodadas
-3. **amostra_impacto_por_rodada.png**: Degradação progressiva
-4. **amostra_matriz_confusao_comparativa.png**: Normal vs Envenenado
-5. **amostra_tabela_resumo.png**: Resumo executivo
+3. **amostra_impacto_por_rodada.png**: Degradação progressiva do modelo
+4. **amostra_matriz_confusao_comparativa.png**: Comparação visual Normal vs Envenenado
+5. **amostra_tabela_resumo.png**: Resumo executivo dos resultados
 
 ---
 
