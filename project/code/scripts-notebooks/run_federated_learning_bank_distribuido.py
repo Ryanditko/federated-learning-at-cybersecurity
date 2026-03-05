@@ -40,10 +40,14 @@ class ModeloFederado:
     
     def __init__(self):
         self._modelo = LogisticRegression(
-            max_iter=20,
+            max_iter=500,  # Aumentado para garantir convergência
             random_state=42,
-            solver='lbfgs',
-            warm_start=True
+            solver='saga',  # Saga é melhor para dados desbalanceados
+            warm_start=True,
+            class_weight='balanced',  # Balanceia classes desbalanceadas
+            penalty='l2',  # Regularização L2
+            C=0.5,  # Regularização mais forte para evitar overfitting na classe majoritária
+            tol=1e-4  # Critério de parada mais rigoroso
         )
         self.scaler = MinMaxScaler()
         self.is_fitted = False
@@ -233,6 +237,21 @@ def preprocessar_features(df):
     if 'balance' in df.columns:
         df = df.drop('balance', axis=1)
     
+    # IMPORTANTE: Feature Engineering para melhorar predição da classe positiva
+    if 'duration' in df.columns:
+        # Duration é altamente correlacionado com sucesso
+        df['duration_log'] = np.log1p(df['duration'])
+        df['duration_high'] = (df['duration'] > 300).astype(int)
+    
+    if 'pdays' in df.columns:
+        # Cliente já foi contatado antes?
+        df['previously_contacted'] = (df['pdays'] != 999).astype(int)
+        df['pdays_log'] = np.log1p(df['pdays'].replace(999, 0))
+    
+    if 'campaign' in df.columns:
+        # Número de contatos na campanha atual
+        df['campaign_low'] = (df['campaign'] <= 2).astype(int)
+    
     # Encoding de variáveis categóricas
     cat_columns = df.select_dtypes(include='object').columns
     cat_columns = [col for col in cat_columns if col != 'y']  # Exclui target
@@ -371,20 +390,21 @@ def executar_cenario_completo(dados_clientes, dados_val_global, num_rodadas=12, 
     
     X_val, y_val = dados_val_global
     
-    # Inicializa modelo global
+    # Inicializa modelo global com TODOS os dados para garantir que aprenda ambas as classes
     print(f"\n[INICIALIZAÇÃO] Criando modelo global...")
     X_init = np.vstack([dados_clientes[i][0] for i in range(NUM_CLIENTES)])
     y_init = np.hstack([dados_clientes[i][1] for i in range(NUM_CLIENTES)])
     
     modelo_inicial = ModeloFederado()
-    modelo_inicial.treinar_incremental(X_init[:50], y_init[:50], None)
+    # Treina com MAIS dados iniciais para garantir que aprenda ambas as classes
+    modelo_inicial.treinar_incremental(X_init[:500], y_init[:500], None)
     pesos_globais = modelo_inicial.obter_pesos()
     
-    # Degrada pesos iniciais
-    pesos_globais['coef'] = pesos_globais['coef'] * 0.15
-    pesos_globais['intercept'] = pesos_globais['intercept'] * 0.15
+    # NÃO degrada pesos iniciais para permitir aprendizado correto
+    # pesos_globais['coef'] = pesos_globais['coef'] * 0.15  # REMOVIDO
+    # pesos_globais['intercept'] = pesos_globais['intercept'] * 0.15  # REMOVIDO
     
-    print(f"  ✓ Modelo global inicializado com pesos degradados")
+    print(f"  ✓ Modelo global inicializado (SEM degradação de pesos)")
     print(f"\n[TREINAMENTO] Executando {num_rodadas} rodadas federadas...")
     
     for rodada in range(1, num_rodadas + 1):
