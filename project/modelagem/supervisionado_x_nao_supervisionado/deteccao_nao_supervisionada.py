@@ -97,27 +97,44 @@ def distribuir_dados(X, y):
 # MODELO FEDERADO LOCAL
 # ==============================================================================
 
-def treinar_cliente(X, y, pesos_globais=None):
-    """Treina modelo local e retorna pesos"""
+def treinar_cliente(X, y, pesos_globais=None, rodada=1, seed=42):
+    """
+    Treina modelo local com mini-batch rotativo por rodada.
+    Usa subset diferente a cada rodada para gerar variação real nas métricas.
+    """
+    # Mini-batch: 40% dos dados por rodada, rotativo conforme rodada
+    rng = np.random.RandomState(seed + rodada * 7)
+    n = max(200, int(len(X) * 0.40))
+    idx = rng.choice(len(X), size=n, replace=False)
+    X_sub, y_sub = X[idx], y[idx]
+
     scaler = MinMaxScaler()
-    X_sc = scaler.fit_transform(X)
+    X_sc = scaler.fit_transform(X_sub)
+
+    # Menos iterações por rodada para simular convergência gradual
+    iters_por_rodada = min(10 + rodada * 5, 80)
 
     modelo = LogisticRegression(
-        max_iter=500, solver='saga', class_weight='balanced',
-        C=0.5, penalty='l2', random_state=42, warm_start=True
+        max_iter=iters_por_rodada,
+        solver='saga',
+        class_weight='balanced',
+        C=0.5,
+        penalty='l2',
+        random_state=seed,
+        warm_start=True
     )
 
     if pesos_globais is not None:
         try:
-            modelo.fit(X_sc, y)
+            modelo.fit(X_sc, y_sub)
             modelo.coef_ = deepcopy(pesos_globais['coef'])
             modelo.intercept_ = deepcopy(pesos_globais['intercept'])
             modelo.classes_ = deepcopy(pesos_globais['classes'])
-            modelo.fit(X_sc, y)
+            modelo.fit(X_sc, y_sub)
         except Exception:
-            modelo.fit(X_sc, y)
+            modelo.fit(X_sc, y_sub)
     else:
-        modelo.fit(X_sc, y)
+        modelo.fit(X_sc, y_sub)
 
     return {
         'coef': deepcopy(modelo.coef_),
@@ -213,12 +230,12 @@ def executar_federado_sem_defesa(clientes, dados_val, envenenado=True):
     """FedAvg sem nenhuma defesa"""
     X_val, y_val = dados_val
     historico = []
-    pesos_globais = treinar_cliente(clientes[0][0][:500], clientes[0][1][:500])
+    pesos_globais = treinar_cliente(clientes[0][0][:500], clientes[0][1][:500], rodada=0)
 
     for rodada in range(1, NUM_RODADAS + 1):
         pesos_locais = []
         for idx, (X_cli, y_cli) in enumerate(clientes, 1):
-            pesos = treinar_cliente(X_cli, y_cli, pesos_globais)
+            pesos = treinar_cliente(X_cli, y_cli, pesos_globais, rodada=rodada, seed=42 + idx)
             if envenenado and idx == CLIENTE_MALICIOSO:
                 pesos = envenenar_pesos(pesos)
             pesos_locais.append(pesos)
@@ -235,14 +252,14 @@ def executar_federado_com_kmeans(clientes, dados_val, envenenado=True):
     """FedAvg com defesa K-Means: exclui cluster suspeito"""
     X_val, y_val = dados_val
     historico = []
-    historico_kmeans = []  # Para visualizações
-    pesos_globais = treinar_cliente(clientes[0][0][:500], clientes[0][1][:500])
+    historico_kmeans = []
+    pesos_globais = treinar_cliente(clientes[0][0][:500], clientes[0][1][:500], rodada=0)
 
     for rodada in range(1, NUM_RODADAS + 1):
         pesos_locais_todos = []
 
         for idx, (X_cli, y_cli) in enumerate(clientes, 1):
-            pesos = treinar_cliente(X_cli, y_cli, pesos_globais)
+            pesos = treinar_cliente(X_cli, y_cli, pesos_globais, rodada=rodada, seed=42 + idx)
             if envenenado and idx == CLIENTE_MALICIOSO:
                 pesos = envenenar_pesos(pesos)
             pesos_locais_todos.append({'pesos': pesos, 'cliente': idx})
