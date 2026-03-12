@@ -103,27 +103,42 @@ def distribuir_dados(X, y):
 # MODELO FEDERADO LOCAL
 # ==============================================================================
 
-def treinar_cliente(X, y, pesos_globais=None):
-    """Treina modelo local e retorna pesos"""
+def treinar_cliente(X, y, pesos_globais=None, rodada=1, seed=42):
+    """
+    Treina modelo local com mini-batch rotativo por rodada.
+    Usa subset diferente a cada rodada para gerar variação real nas métricas.
+    """
+    rng = np.random.RandomState(seed + rodada * 7)
+    n = max(200, int(len(X) * 0.40))
+    idx = rng.choice(len(X), size=n, replace=False)
+    X_sub, y_sub = X[idx], y[idx]
+
     scaler = MinMaxScaler()
-    X_sc = scaler.fit_transform(X)
+    X_sc = scaler.fit_transform(X_sub)
+
+    iters_por_rodada = min(10 + rodada * 5, 80)
 
     modelo = LogisticRegression(
-        max_iter=500, solver='saga', class_weight='balanced',
-        C=0.5, penalty='l2', random_state=42, warm_start=True
+        max_iter=iters_por_rodada,
+        solver='saga',
+        class_weight='balanced',
+        C=0.5,
+        penalty='l2',
+        random_state=seed,
+        warm_start=True
     )
 
     if pesos_globais is not None:
         try:
-            modelo.fit(X_sc, y)
+            modelo.fit(X_sc, y_sub)
             modelo.coef_ = deepcopy(pesos_globais['coef'])
             modelo.intercept_ = deepcopy(pesos_globais['intercept'])
             modelo.classes_ = deepcopy(pesos_globais['classes'])
-            modelo.fit(X_sc, y)
+            modelo.fit(X_sc, y_sub)
         except Exception:
-            modelo.fit(X_sc, y)
+            modelo.fit(X_sc, y_sub)
     else:
-        modelo.fit(X_sc, y)
+        modelo.fit(X_sc, y_sub)
 
     return {
         'coef': deepcopy(modelo.coef_),
@@ -263,33 +278,29 @@ def executar_federado_com_defesa(clientes, dados_val, detector, pca, envenenado=
     X_val, y_val = dados_val
     historico = []
 
-    pesos_globais = treinar_cliente(clientes[0][0][:500], clientes[0][1][:500])
+    pesos_globais = treinar_cliente(clientes[0][0][:500], clientes[0][1][:500], rodada=0)
 
     for rodada in range(1, NUM_RODADAS + 1):
         pesos_locais = []
         detectados = []
 
         for idx, (X_cli, y_cli) in enumerate(clientes, 1):
-            pesos = treinar_cliente(X_cli, y_cli, pesos_globais)
+            pesos = treinar_cliente(X_cli, y_cli, pesos_globais, rodada=rodada, seed=42 + idx)
 
-            # Aplica ataque no cliente malicioso
             if envenenado and idx == CLIENTE_MALICIOSO:
                 pesos = envenenar_pesos(pesos)
 
-            # DEFESA: classifica o vetor de pesos
             vetor_pca = pca.transform([pesos['vetor']])
             prob_malicioso = detector.predict_proba(vetor_pca)[0][1]
             e_malicioso = prob_malicioso > 0.5
 
             detectados.append({'cliente': idx, 'prob_malicioso': prob_malicioso, 'detectado': e_malicioso})
 
-            # Só adiciona se não for detectado como malicioso
             if not e_malicioso:
                 pesos_locais.append(pesos)
 
-        # Agrega apenas pesos honestos
         if len(pesos_locais) == 0:
-            pesos_locais = [treinar_cliente(clientes[0][0][:100], clientes[0][1][:100])]
+            pesos_locais = [treinar_cliente(clientes[0][0][:100], clientes[0][1][:100], rodada=rodada)]
 
         pesos_globais = agregar_fedavg(pesos_locais)
         metricas = avaliar_modelo_global(pesos_globais, X_val, y_val)
@@ -306,13 +317,13 @@ def executar_federado_sem_defesa(clientes, dados_val, envenenado=True):
     X_val, y_val = dados_val
     historico = []
 
-    pesos_globais = treinar_cliente(clientes[0][0][:500], clientes[0][1][:500])
+    pesos_globais = treinar_cliente(clientes[0][0][:500], clientes[0][1][:500], rodada=0)
 
     for rodada in range(1, NUM_RODADAS + 1):
         pesos_locais = []
 
         for idx, (X_cli, y_cli) in enumerate(clientes, 1):
-            pesos = treinar_cliente(X_cli, y_cli, pesos_globais)
+            pesos = treinar_cliente(X_cli, y_cli, pesos_globais, rodada=rodada, seed=42 + idx)
 
             if envenenado and idx == CLIENTE_MALICIOSO:
                 pesos = envenenar_pesos(pesos)
