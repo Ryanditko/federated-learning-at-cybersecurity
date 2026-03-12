@@ -598,7 +598,7 @@ def gerar_visualizacao_comparativa(hist_normal, hist_envenenado):
     plt.tight_layout()
     
     import os
-    caminho_img = '../../modelagem/apresentação/bank_fl_distribuido_global.png'
+    caminho_img = '../../modelagem/supervisionado_x_nao_supervisionado/resultados/bank_fl_distribuido_global.png'
     os.makedirs(os.path.dirname(caminho_img), exist_ok=True)
     plt.savefig(caminho_img, dpi=300, bbox_inches='tight')
     print("  ✓ Salvo: bank_fl_distribuido_global.png")
@@ -645,7 +645,7 @@ def gerar_grafico_convergencia(hist_normal, hist_envenenado):
                 fontsize=16, fontweight='bold', y=0.995)
     plt.tight_layout()
     
-    caminho_img = '../../modelagem/apresentação/bank_convergencia_por_rodada.png'
+    caminho_img = '../../modelagem/supervisionado_x_nao_supervisionado/resultados/bank_convergencia_por_rodada.png'
     plt.savefig(caminho_img, dpi=300, bbox_inches='tight')
     print("    ✓ Salvo: bank_convergencia_por_rodada.png")
     plt.close()
@@ -717,7 +717,7 @@ def gerar_grafico_classificacao_por_classe(hist_normal, hist_envenenado):
                 fontsize=16, fontweight='bold', y=0.995)
     plt.tight_layout()
     
-    caminho_img = '../../modelagem/apresentação/bank_analise_por_classe.png'
+    caminho_img = '../../modelagem/supervisionado_x_nao_supervisionado/resultados/bank_analise_por_classe.png'
     plt.savefig(caminho_img, dpi=300, bbox_inches='tight')
     print("    ✓ Salvo: bank_analise_por_classe.png")
     plt.close()
@@ -759,7 +759,7 @@ def gerar_matriz_confusao_evolutiva(hist_normal, hist_envenenado):
                 fontsize=16, fontweight='bold', y=0.98)
     plt.tight_layout()
     
-    caminho_img = '../../modelagem/apresentação/bank_matriz_confusao_evolutiva.png'
+    caminho_img = '../../modelagem/supervisionado_x_nao_supervisionado/resultados/bank_matriz_confusao_evolutiva.png'
     plt.savefig(caminho_img, dpi=300, bbox_inches='tight')
     print("    ✓ Salvo: bank_matriz_confusao_evolutiva.png")
     plt.close()
@@ -847,7 +847,7 @@ def gerar_tabela_comparativa(hist_normal, hist_envenenado):
     plt.title('Bank Marketing - Tabela Comparativa de Métricas\nAprendizado Federado Distribuído (Rodada Final)',
              fontsize=15, fontweight='bold', pad=20)
     
-    caminho_img = '../../modelagem/apresentação/bank_tabela_comparativa.png'
+    caminho_img = '../../modelagem/supervisionado_x_nao_supervisionado/resultados/bank_tabela_comparativa.png'
     plt.savefig(caminho_img, dpi=300, bbox_inches='tight')
     print("    ✓ Salvo: bank_tabela_comparativa.png")
     plt.close()
@@ -928,7 +928,7 @@ def gerar_grafico_impacto_ataque(hist_normal, hist_envenenado):
                 fontsize=16, fontweight='bold')
     plt.tight_layout()
     
-    caminho_img = '../../modelagem/apresentação/bank_impacto_ataque.png'
+    caminho_img = '../../modelagem/supervisionado_x_nao_supervisionado/resultados/bank_impacto_ataque.png'
     plt.savefig(caminho_img, dpi=300, bbox_inches='tight')
     print("    ✓ Salvo: bank_impacto_ataque.png")
     plt.close()
@@ -1034,7 +1034,7 @@ def gerar_grafico_desempenho_clientes(hist_cli_normal, hist_cli_env, dados_clien
                 fontsize=16, fontweight='bold', y=0.995)
     plt.tight_layout()
     
-    caminho_img = '../../modelagem/apresentação/bank_desempenho_clientes.png'
+    caminho_img = '../../modelagem/supervisionado_x_nao_supervisionado/resultados/bank_desempenho_clientes.png'
     plt.savefig(caminho_img, dpi=300, bbox_inches='tight')
     print("    ✓ Salvo: bank_desempenho_clientes.png")
     plt.close()
