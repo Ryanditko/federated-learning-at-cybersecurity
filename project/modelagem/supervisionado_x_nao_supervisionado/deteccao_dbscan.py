@@ -1,17 +1,7 @@
 """
-Detecção com DBSCAN de Clientes Maliciosos no Servidor
-=======================================================
-Abordagem: DBSCAN (Density-Based Spatial Clustering) para detectar
-           outliers nos vetores de pesos dos clientes
-
-Pipeline:
-1. Simula rodadas federadas com 15 clientes (12 honestos, 3 maliciosos)
-2. Coleta vetores de pesos de cada cliente após treino local
-3. Aplica DBSCAN para encontrar outliers (maliciosos)
-4. No servidor, usa DBSCAN para detectar e excluir maliciosos
-5. Compara FedAvg normal vs FedAvg com defesa DBSCAN
-
-Dataset: Bank Marketing (41k registros)
+Análise Completa da Detecção DBSCAN
+====================================
+Visualizações detalhadas para o experimento com 15 clientes.
 """
 
 import pandas as pd
@@ -38,21 +28,15 @@ RESULTADOS_DIR = "resultados/"
 NUM_RODADAS = 12
 NUM_CLIENTES = 15
 NUM_MALICIOSOS = 3
-CLIENTES_MALICIOSOS = [13, 14, 15]  # Últimos 3 clientes são maliciosos
+CLIENTES_MALICIOSOS = [13, 14, 15]
 
-
-# ==============================================================================
-# CARREGAMENTO E PREPROCESSAMENTO
-# ==============================================================================
 
 def carregar_dataset():
     """Carrega e preprocessa o dataset Bank Marketing completo"""
     caminho = r"c:\Users\Administrador\Faculdade\Iniciação-cientifica\project\data\bank-marketing\bank.csv"
     df = pd.read_csv(caminho, sep=';')
-
     df = df.drop_duplicates()
 
-    # Imputa unknowns
     df['job'] = df.apply(
         lambda r: ('management' if r['education'] == 'tertiary' else 'blue-collar')
         if r['job'] == 'unknown' else r['job'], axis=1)
@@ -68,7 +52,6 @@ def carregar_dataset():
     if 'balance' in df.columns:
         df = df.drop('balance', axis=1)
 
-    # Feature engineering
     if 'duration' in df.columns:
         df['duration_log'] = np.log1p(df['duration'])
         df['duration_high'] = (df['duration'] > 300).astype(int)
@@ -77,7 +60,6 @@ def carregar_dataset():
     if 'campaign' in df.columns:
         df['campaign_low'] = (df['campaign'] <= 2).astype(int)
 
-    # One-hot encoding
     cat_cols = [c for c in df.select_dtypes(include='object').columns if c != 'y']
     for col in cat_cols:
         dummies = pd.get_dummies(df[col], prefix=col, drop_first=True)
@@ -91,13 +73,12 @@ def carregar_dataset():
 
 
 def distribuir_dados_15clientes(X, y):
-    """Distribui dados entre 15 clientes (estratificado)"""
+    """Distribui dados entre 15 clientes"""
     X_tr, X_val, y_tr, y_val = train_test_split(X, y, test_size=0.25, random_state=42, stratify=y)
 
     clientes = []
     X_restante, y_restante = X_tr, y_tr
 
-    # Distribui 75% dos dados entre 15 clientes (~5% cada)
     for i in range(NUM_CLIENTES):
         if i < NUM_CLIENTES - 1:
             test_size = (NUM_CLIENTES - i - 1) / (NUM_CLIENTES - i)
@@ -112,12 +93,8 @@ def distribuir_dados_15clientes(X, y):
     return clientes, (X_val, y_val)
 
 
-# ==============================================================================
-# MODELO FEDERADO LOCAL
-# ==============================================================================
-
 def treinar_cliente(X, y, pesos_globais=None, rodada=1, seed=42):
-    """Treina modelo local com mini-batch rotativo por rodada"""
+    """Treina modelo local"""
     rng = np.random.RandomState(seed + rodada * 7)
     n = max(150, int(len(X) * 0.40))
     idx = rng.choice(len(X), size=n, replace=False)
@@ -129,13 +106,8 @@ def treinar_cliente(X, y, pesos_globais=None, rodada=1, seed=42):
     iters_por_rodada = min(10 + rodada * 5, 80)
 
     modelo = LogisticRegression(
-        max_iter=iters_por_rodada,
-        solver='saga',
-        class_weight='balanced',
-        C=0.5,
-        penalty='l2',
-        random_state=seed,
-        warm_start=True
+        max_iter=iters_por_rodada, solver='saga', class_weight='balanced',
+        C=0.5, penalty='l2', random_state=seed, warm_start=True
     )
 
     if pesos_globais is not None:
@@ -168,7 +140,7 @@ def envenenar_pesos(pesos, taxa=0.9):
 
 
 def agregar_fedavg(lista_pesos):
-    """Agrega pesos com FedAvg"""
+    """Agrega pesos"""
     return {
         'coef': np.mean([p['coef'] for p in lista_pesos], axis=0),
         'intercept': np.mean([p['intercept'] for p in lista_pesos], axis=0),
@@ -177,7 +149,7 @@ def agregar_fedavg(lista_pesos):
 
 
 def avaliar_modelo_global(pesos_globais, X_val, y_val):
-    """Avalia modelo global no conjunto de validação"""
+    """Avalia modelo global"""
     scaler = MinMaxScaler()
     X_sc = scaler.fit_transform(X_val)
 
@@ -202,37 +174,26 @@ def avaliar_modelo_global(pesos_globais, X_val, y_val):
     }
 
 
-# ==============================================================================
-# DETECÇÃO COM DBSCAN
-# ==============================================================================
-
 def detectar_maliciosos_dbscan(pesos_lista, pca=None, eps=0.8, min_samples=2):
-    """
-    Usa DBSCAN para detectar outliers nos vetores de pesos.
-    Retorna índices dos clientes detectados como maliciosos (outliers).
-    """
-    # Extrai vetores
+    """Detecta outliers com DBSCAN"""
     vetores = np.array([p['vetor'] for p in pesos_lista])
 
-    # Reduz dimensionalidade se necessário
     if pca is None:
         pca = PCA(n_components=min(15, vetores.shape[1], vetores.shape[0]-1), random_state=42)
         vetores_pca = pca.fit_transform(vetores)
     else:
         vetores_pca = pca.transform(vetores)
 
-    # Aplica DBSCAN
     dbscan = DBSCAN(eps=eps, min_samples=min_samples)
     labels = dbscan.fit_predict(vetores_pca)
 
-    # Outliers têm label -1
     suspeitos = [i for i, label in enumerate(labels) if label == -1]
 
     return suspeitos, labels, vetores_pca, pca
 
 
 def executar_federado_com_defesa_dbscan(clientes, dados_val, envenenado=True):
-    """Executa aprendizado federado com detecção DBSCAN"""
+    """Executa aprendizado com defesa DBSCAN"""
     X_val, y_val = dados_val
     historico = []
 
@@ -243,7 +204,6 @@ def executar_federado_com_defesa_dbscan(clientes, dados_val, envenenado=True):
         pesos_locais = []
         detectados = []
 
-        # Coleta pesos de todos os clientes
         todos_pesos = []
         for idx, (X_cli, y_cli) in enumerate(clientes, 1):
             pesos = treinar_cliente(X_cli, y_cli, pesos_globais, rodada=rodada, seed=42 + idx)
@@ -253,10 +213,8 @@ def executar_federado_com_defesa_dbscan(clientes, dados_val, envenenado=True):
 
             todos_pesos.append(pesos)
 
-        # Detecta maliciosos com DBSCAN
         suspeitos_indices, labels, vetores_pca, pca = detectar_maliciosos_dbscan(todos_pesos, pca, eps=1.0, min_samples=3)
 
-        # Registra detecções
         for idx in range(NUM_CLIENTES):
             e_malicioso = idx in suspeitos_indices
             detectados.append({
@@ -268,7 +226,6 @@ def executar_federado_com_defesa_dbscan(clientes, dados_val, envenenado=True):
             if not e_malicioso:
                 pesos_locais.append(todos_pesos[idx])
 
-        # Se todos foram detectados, usa todos (fallback)
         if len(pesos_locais) == 0:
             pesos_locais = todos_pesos
 
@@ -283,7 +240,7 @@ def executar_federado_com_defesa_dbscan(clientes, dados_val, envenenado=True):
 
 
 def executar_federado_sem_defesa(clientes, dados_val, envenenado=True):
-    """Executa aprendizado federado SEM defesa (baseline)"""
+    """Executa aprendizado sem defesa"""
     X_val, y_val = dados_val
     historico = []
 
@@ -309,269 +266,293 @@ def executar_federado_sem_defesa(clientes, dados_val, envenenado=True):
 
 
 # ==============================================================================
-# VISUALIZAÇÕES
+# NOVAS VISUALIZAÇÕES
 # ==============================================================================
 
-def plot_dbscan_clusters_15clientes(hist_com_defesa):
-    """Visualiza clusters DBSCAN na última rodada"""
-    deteccoes_final = hist_com_defesa[-1]['detectados']
-    labels = [d['label_cluster'] for d in deteccoes_final]
-    clientes_nums = [d['cliente'] for d in deteccoes_final]
+def plot_matriz_confusao_por_rodada(hist_sem_defesa, hist_com_defesa):
+    """Matrizes de confusão selecionadas (rodadas 1, 4, 8, 12)"""
+    fig, axes = plt.subplots(2, 4, figsize=(20, 10))
 
-    fig, axes = plt.subplots(1, 2, figsize=(18, 7))
+    rodadas_analisar = [1, 4, 8, 12]
 
-    # Gráfico 1: Scatter com cores por cliente
-    ax = axes[0]
-    colors = ['red' if c in CLIENTES_MALICIOSOS else 'blue' for c in clientes_nums]
-    markers = ['X' if labels[i] == -1 else 'o' for i in range(len(clientes_nums))]
+    for idx, rodada in enumerate(rodadas_analisar):
+        # Sem defesa
+        ax = axes[0, idx]
+        cm_sem = hist_sem_defesa[rodada - 1]['cm']
+        sns.heatmap(cm_sem, annot=True, fmt='d', cmap='Reds', ax=ax,
+                    cbar=False, xticklabels=['Não', 'Sim'], yticklabels=['Não', 'Sim'],
+                    annot_kws={'size': 12, 'weight': 'bold'})
+        ax.set_title(f'Sem Defesa - Rodada {rodada}', fontweight='bold', fontsize=12)
+        if idx == 0:
+            ax.set_ylabel('Real', fontweight='bold')
 
-    for i, (cli, col, mark) in enumerate(zip(clientes_nums, colors, markers)):
-        ax.scatter(i, 0, s=400, c=col, marker=mark, alpha=0.7, edgecolors='black', linewidth=2)
-        ax.text(i, -0.1, f'C{cli}', ha='center', fontweight='bold', fontsize=11)
+        # Com defesa DBSCAN
+        ax = axes[1, idx]
+        cm_com = hist_com_defesa[rodada - 1]['cm']
+        sns.heatmap(cm_com, annot=True, fmt='d', cmap='Greens', ax=ax,
+                    cbar=False, xticklabels=['Não', 'Sim'], yticklabels=['Não', 'Sim'],
+                    annot_kws={'size': 12, 'weight': 'bold'})
+        ax.set_title(f'Com DBSCAN - Rodada {rodada}', fontweight='bold', fontsize=12)
+        if idx == 0:
+            ax.set_ylabel('Real', fontweight='bold')
+        ax.set_xlabel('Predito', fontweight='bold')
 
-    ax.set_xlim(-1, NUM_CLIENTES)
-    ax.set_ylim(-0.3, 0.3)
-    ax.set_title('Detecção DBSCAN - Última Rodada\n(X = Outlier/Malicioso, O = Normal)', 
-                 fontsize=13, fontweight='bold')
-    ax.set_xlabel('Cliente', fontweight='bold')
-    ax.set_xticks(range(NUM_CLIENTES))
-    ax.set_yticks([])
-    ax.grid(True, alpha=0.3, axis='x')
-
-    # Gráfico 2: Tabela de detecções
-    ax = axes[1]
-    ax.axis('off')
-
-    table_data = []
-    for d in deteccoes_final:
-        status = '✓ DETECTADO' if d['detectado'] else '✗ Normal'
-        tipo = 'Malicioso' if d['cliente'] in CLIENTES_MALICIOSOS else 'Honesto'
-        table_data.append([f"C{d['cliente']}", tipo, status, str(d['label_cluster'])])
-
-    colLabels = ['Cliente', 'Tipo Real', 'Status', 'Cluster']
-    table = ax.table(cellText=table_data, colLabels=colLabels, cellLoc='center',
-                     loc='center', colWidths=[0.15, 0.25, 0.3, 0.2])
-    table.auto_set_font_size(False)
-    table.set_fontsize(10)
-    table.scale(1, 1.8)
-
-    for i in range(len(colLabels)):
-        table[(0, i)].set_facecolor('#2E86AB')
-        table[(0, i)].set_text_props(color='white', fontweight='bold')
-
-    for i in range(1, len(table_data) + 1):
-        d = deteccoes_final[i-1]
-        if d['detectado']:
-            table[(i, 2)].set_facecolor('#FFB6C6')  # Rosa para detectado
-        else:
-            table[(i, 2)].set_facecolor('#C6FFB6')  # Verde para normal
-
-    ax.set_title('Resumo de Detecções', fontsize=13, fontweight='bold', pad=20)
-
-    plt.suptitle('Detecção DBSCAN de Clientes Maliciosos\n15 Clientes (3 Maliciosos, 12 Honestos)',
+    plt.suptitle('Evolução das Matrizes de Confusão - DBSCAN 15 Clientes\nRodadas 1, 4, 8 e 12',
                  fontsize=15, fontweight='bold')
     plt.tight_layout()
-    plt.savefig(f'{RESULTADOS_DIR}dbscan_clusters_15clientes.png', dpi=300, bbox_inches='tight')
-    print(f"  Salvo: dbscan_clusters_15clientes.png")
+    plt.savefig(f'{RESULTADOS_DIR}dbscan_matriz_confusao_evolutiva.png', dpi=300, bbox_inches='tight')
+    print(f"  Salvo: dbscan_matriz_confusao_evolutiva.png")
     plt.close()
 
 
-def plot_comparacao_dbscan(hist_sem_defesa, hist_com_defesa, hist_normal):
-    """Compara 3 cenários: normal, atacado sem defesa, atacado com defesa DBSCAN"""
-    fig, axes = plt.subplots(2, 2, figsize=(18, 12))
+def plot_metricas_individuais_por_rodada(hist_sem_defesa, hist_com_defesa, hist_normal):
+    """Plot detalhado de cada métrica individualmente"""
+    fig, axes = plt.subplots(2, 3, figsize=(20, 12))
+    axes = axes.flatten()
 
-    metricas = ['acuracia', 'f1', 'auc', 'loss']
-    titulos = ['Acurácia (%)', 'F1-Score (%)', 'AUC-ROC', 'Loss']
+    metricas = ['acuracia', 'f1', 'precisao', 'recall', 'auc', 'loss']
+    titulos = ['Acurácia', 'F1-Score', 'Precisão', 'Recall', 'AUC-ROC', 'Loss']
 
-    for idx, (met, titulo) in enumerate(zip(metricas, titulos)):
-        ax = axes[idx // 2, idx % 2]
+    for idx, (metrica, titulo) in enumerate(zip(metricas, titulos)):
+        ax = axes[idx]
 
         rodadas = [h['rodada'] for h in hist_normal]
-        fator = 100 if met in ['acuracia', 'f1'] else 1
+        fator = 100 if metrica != 'auc' and metrica != 'loss' else 1
 
-        v_normal = [h[met] * fator for h in hist_normal]
-        v_sem = [h[met] * fator for h in hist_sem_defesa]
-        v_com = [h[met] * fator for h in hist_com_defesa]
+        v_normal = [h[metrica] * fator for h in hist_normal]
+        v_sem = [h[metrica] * fator for h in hist_sem_defesa]
+        v_com = [h[metrica] * fator for h in hist_com_defesa]
 
         ax.plot(rodadas, v_normal, marker='o', linewidth=3, color='#2E86AB',
-                label='Normal (sem ataque)', markersize=8)
+                label='Normal', markersize=8, markeredgewidth=2, markeredgecolor='white')
         ax.plot(rodadas, v_sem, marker='s', linewidth=3, color='#D62828',
-                label='Atacado (sem defesa)', markersize=8, linestyle='--')
+                label='Atacado (sem defesa)', markersize=8, linestyle='--', markeredgewidth=2, markeredgecolor='white')
         ax.plot(rodadas, v_com, marker='^', linewidth=3, color='#06D6A0',
-                label='Atacado (com defesa DBSCAN)', markersize=8)
+                label='Atacado (com DBSCAN)', markersize=8, markeredgewidth=2, markeredgecolor='white')
 
         ax.fill_between(rodadas, v_normal, alpha=0.1, color='#2E86AB')
         ax.fill_between(rodadas, v_com, alpha=0.1, color='#06D6A0')
 
-        ax.set_title(titulo, fontsize=13, fontweight='bold')
-        ax.set_xlabel('Rodada Federada', fontweight='bold')
-        ax.set_ylabel(titulo, fontweight='bold')
-        ax.legend(fontsize=10)
+        ax.set_title(titulo, fontsize=14, fontweight='bold')
+        ax.set_xlabel('Rodada Federada', fontweight='bold', fontsize=11)
+        sufixo = '%' if metrica in ['acuracia', 'f1', 'precisao', 'recall'] else ''
+        ax.set_ylabel(f'{titulo} {sufixo}', fontweight='bold', fontsize=11)
+        ax.legend(fontsize=10, loc='best')
         ax.grid(True, alpha=0.3, linestyle='--')
 
-    plt.suptitle('Comparação: Normal vs Atacado vs Defesa DBSCAN\n15 Clientes (3 Maliciosos, 12 Honestos)',
-                 fontsize=15, fontweight='bold')
+    plt.suptitle('Análise Detalhada de Métricas - DBSCAN 15 Clientes\nTodas as 12 Rodadas Federadas',
+                 fontsize=16, fontweight='bold')
     plt.tight_layout()
-    plt.savefig(f'{RESULTADOS_DIR}dbscan_comparacao_15clientes.png', dpi=300, bbox_inches='tight')
-    print(f"  Salvo: dbscan_comparacao_15clientes.png")
+    plt.savefig(f'{RESULTADOS_DIR}dbscan_metricas_detalhadas.png', dpi=300, bbox_inches='tight')
+    print(f"  Salvo: dbscan_metricas_detalhadas.png")
     plt.close()
 
 
-def plot_eficacia_dbscan(hist_sem_defesa, hist_com_defesa, hist_normal):
-    """Mostra eficácia da defesa DBSCAN"""
-    fig, axes = plt.subplots(1, 3, figsize=(18, 6))
-
-    metricas = ['acuracia', 'f1', 'auc']
-    titulos = ['Acurácia (%)', 'F1-Score (%)', 'AUC-ROC']
-
-    for idx, (met, titulo) in enumerate(zip(metricas, titulos)):
-        ax = axes[idx]
-        fator = 100 if met in ['acuracia', 'f1'] else 1
-
-        v_normal = hist_normal[-1][met] * fator
-        v_sem = hist_sem_defesa[-1][met] * fator
-        v_com = hist_com_defesa[-1][met] * fator
-
-        categorias = ['Normal\n(sem ataque)', 'Atacado\n(sem defesa)', 'Atacado\n(com DBSCAN)']
-        valores = [v_normal, v_sem, v_com]
-        cores = ['#2E86AB', '#D62828', '#06D6A0']
-
-        bars = ax.bar(categorias, valores, color=cores, alpha=0.85, width=0.5,
-                      edgecolor='white', linewidth=2)
-
-        for bar, val in zip(bars, valores):
-            ax.text(bar.get_x() + bar.get_width() / 2, bar.get_height() + 0.5,
-                    f'{val:.2f}{"%" if met != "auc" else ""}',
-                    ha='center', fontweight='bold', fontsize=12)
-
-        recuperacao = ((v_com - v_sem) / (v_normal - v_sem + 1e-9)) * 100 if v_normal != v_sem else 100
-        ax.set_title(f'{titulo}\nRecuperação: {recuperacao:.1f}%', fontsize=13, fontweight='bold')
-        ax.set_ylabel(titulo, fontweight='bold')
-        ax.grid(True, alpha=0.3, axis='y')
-        ax.set_ylim(0, max(valores) * 1.2)
-
-    plt.suptitle('Eficácia da Defesa DBSCAN\n15 Clientes (3 Maliciosos, 12 Honestos)',
-                 fontsize=15, fontweight='bold')
-    plt.tight_layout()
-    plt.savefig(f'{RESULTADOS_DIR}dbscan_eficacia_15clientes.png', dpi=300, bbox_inches='tight')
-    print(f"  Salvo: dbscan_eficacia_15clientes.png")
-    plt.close()
-
-
-def plot_deteccoes_por_rodada_dbscan(hist_com_defesa):
-    """Mostra status de detecção por cliente ao longo das rodadas"""
+def plot_tabela_comparativa_final(hist_normal, hist_sem_defesa, hist_com_defesa):
+    """Tabela comparativa de todas as métricas finais"""
     fig, ax = plt.subplots(figsize=(16, 8))
+    ax.axis('off')
 
-    # Prepara dados
-    for cli in range(1, NUM_CLIENTES + 1):
-        deteccoes = []
-        rodadas = []
+    final_normal = hist_normal[-1]
+    final_sem = hist_sem_defesa[-1]
+    final_com = hist_com_defesa[-1]
 
-        for h in hist_com_defesa:
-            for d in h['detectados']:
-                if d['cliente'] == cli:
-                    deteccoes.append(1 if d['detectado'] else 0)
-                    rodadas.append(h['rodada'])
+    table_data = [
+        ['Métrica', 'Normal', 'Atacado (sem defesa)', 'Atacado (com DBSCAN)', 'Recuperação'],
+        ['Acurácia (%)', f"{final_normal['acuracia']*100:.2f}", f"{final_sem['acuracia']*100:.2f}",
+         f"{final_com['acuracia']*100:.2f}",
+         f"{((final_com['acuracia']-final_sem['acuracia'])/(final_normal['acuracia']-final_sem['acuracia'])*100 if final_normal['acuracia']!=final_sem['acuracia'] else 0):.1f}%"],
+        ['F1-Score (%)', f"{final_normal['f1']*100:.2f}", f"{final_sem['f1']*100:.2f}",
+         f"{final_com['f1']*100:.2f}",
+         f"{((final_com['f1']-final_sem['f1'])/(final_normal['f1']-final_sem['f1'])*100 if final_normal['f1']!=final_sem['f1'] else 0):.1f}%"],
+        ['Precisão (%)', f"{final_normal['precisao']*100:.2f}", f"{final_sem['precisao']*100:.2f}",
+         f"{final_com['precisao']*100:.2f}",
+         f"{((final_com['precisao']-final_sem['precisao'])/(final_normal['precisao']-final_sem['precisao'])*100 if final_normal['precisao']!=final_sem['precisao'] else 0):.1f}%"],
+        ['Recall (%)', f"{final_normal['recall']*100:.2f}", f"{final_sem['recall']*100:.2f}",
+         f"{final_com['recall']*100:.2f}",
+         f"{((final_com['recall']-final_sem['recall'])/(final_normal['recall']-final_sem['recall'])*100 if final_normal['recall']!=final_sem['recall'] else 0):.1f}%"],
+        ['AUC-ROC', f"{final_normal['auc']:.4f}", f"{final_sem['auc']:.4f}",
+         f"{final_com['auc']:.4f}",
+         f"{((final_com['auc']-final_sem['auc'])/(final_normal['auc']-final_sem['auc'])*100 if final_normal['auc']!=final_sem['auc'] else 0):.1f}%"],
+        ['Loss', f"{final_normal['loss']:.4f}", f"{final_sem['loss']:.4f}",
+         f"{final_com['loss']:.4f}",
+         f"{((final_sem['loss']-final_com['loss'])/(final_sem['loss']-final_normal['loss'])*100 if final_sem['loss']!=final_normal['loss'] else 0):.1f}%"],
+    ]
 
-        cor = '#D62828' if cli in CLIENTES_MALICIOSOS else '#2E86AB'
-        estilo = '--' if cli in CLIENTES_MALICIOSOS else '-'
-        label = f'Cliente {cli} (MALICIOSO)' if cli in CLIENTES_MALICIOSOS else f'Cliente {cli}'
+    table = ax.table(cellText=table_data[1:], colLabels=table_data[0], cellLoc='center',
+                     loc='center', colWidths=[0.2, 0.18, 0.22, 0.22, 0.18])
+    table.auto_set_font_size(False)
+    table.set_fontsize(11)
+    table.scale(1, 3)
 
-        ax.plot(rodadas, deteccoes, marker='o', linewidth=2.5, color=cor,
-                linestyle=estilo, label=label, markersize=6, alpha=0.8)
+    for i in range(len(table_data[0])):
+        table[(0, i)].set_facecolor('#2E86AB')
+        table[(0, i)].set_text_props(color='white', fontweight='bold', size=12)
 
-    # Destacar zona de detecção
-    ax.fill_between(range(1, NUM_RODADAS + 1), 0, 1, alpha=0.05, color='red')
+    for i in range(1, len(table_data)):
+        table[(i, 0)].set_facecolor('#E8F4F8')
+        table[(i, 0)].set_text_props(weight='bold')
+        table[(i, 1)].set_facecolor('#D4EDDA')
+        table[(i, 2)].set_facecolor('#F8D7DA')
+        table[(i, 3)].set_facecolor('#D1E7F7')
+        table[(i, 4)].set_facecolor('#FFF3CD')
+
+    ax.set_title('Tabela Comparativa de Métricas Finais (Rodada 12)\nDBSCAN 15 Clientes',
+                 fontsize=15, fontweight='bold', pad=20)
+
+    plt.tight_layout()
+    plt.savefig(f'{RESULTADOS_DIR}dbscan_tabela_comparativa_final.png', dpi=300, bbox_inches='tight')
+    print(f"  Salvo: dbscan_tabela_comparativa_final.png")
+    plt.close()
+
+
+def plot_degradacao_vs_recuperacao(hist_normal, hist_sem_defesa, hist_com_defesa):
+    """Gráfico mostrando degradação e recuperação"""
+    fig, ax = plt.subplots(figsize=(14, 8))
+
+    metricas = ['Acurácia', 'F1-Score', 'Precisão', 'Recall', 'AUC']
+    metrica_keys = ['acuracia', 'f1', 'precisao', 'recall', 'auc']
+
+    degradacoes = []
+    recuperacoes = []
+
+    for key in metrica_keys:
+        v_normal = hist_normal[-1][key]
+        v_sem = hist_sem_defesa[-1][key]
+        v_com = hist_com_defesa[-1][key]
+
+        degradacao = (v_normal - v_sem) * 100
+        recuperacao = ((v_com - v_sem) / (v_normal - v_sem)) * 100 if v_normal != v_sem else 0
+
+        degradacoes.append(degradacao)
+        recuperacoes.append(recuperacao)
+
+    x = np.arange(len(metricas))
+    width = 0.35
+
+    bars1 = ax.bar(x - width/2, degradacoes, width, label='Degradação pelo Ataque', color='#D62828', alpha=0.8)
+    bars2 = ax.bar(x + width/2, recuperacoes, width, label='Recuperação com DBSCAN', color='#06D6A0', alpha=0.8)
+
+    for bar in bars1:
+        height = bar.get_height()
+        ax.text(bar.get_x() + bar.get_width()/2., height,
+                f'{height:.1f}%', ha='center', va='bottom', fontweight='bold', fontsize=10)
+
+    for bar in bars2:
+        height = bar.get_height()
+        ax.text(bar.get_x() + bar.get_width()/2., height,
+                f'{height:.1f}%', ha='center', va='bottom', fontweight='bold', fontsize=10)
+
+    ax.set_ylabel('Variação de Métrica (%)', fontweight='bold', fontsize=12)
+    ax.set_title('Degradação do Ataque vs Recuperação com DBSCAN\nDBSCAN 15 Clientes',
+                 fontsize=14, fontweight='bold')
+    ax.set_xticks(x)
+    ax.set_xticklabels(metricas, fontweight='bold')
+    ax.legend(fontsize=11, loc='upper right')
+    ax.grid(True, alpha=0.3, axis='y')
+    ax.axhline(y=0, color='black', linewidth=1)
+
+    plt.tight_layout()
+    plt.savefig(f'{RESULTADOS_DIR}dbscan_degradacao_vs_recuperacao.png', dpi=300, bbox_inches='tight')
+    print(f"  Salvo: dbscan_degradacao_vs_recuperacao.png")
+    plt.close()
+
+
+def plot_acuracia_por_cliente_malicioso(hist_com_defesa):
+    """Mostra acurácia geral e detecções de maliciosos"""
+    fig, axes = plt.subplots(1, 2, figsize=(16, 6))
+
+    # Gráfico 1: Acurácia por rodada com marcação de detecções
+    ax = axes[0]
+    rodadas = [h['rodada'] for h in hist_com_defesa]
+    acuracias = [h['acuracia'] * 100 for h in hist_com_defesa]
+
+    ax.plot(rodadas, acuracias, marker='o', linewidth=3, color='#06D6A0', markersize=10,
+            markeredgewidth=2, markeredgecolor='white', label='Acurácia Global')
+
+    # Marca quantos maliciosos foram detectados em cada rodada
+    for h in hist_com_defesa:
+        detectados = sum(1 for d in h['detectados'] if d['detectado'] and d['cliente'] in CLIENTES_MALICIOSOS)
+        rodada = h['rodada']
+        acuracia = h['acuracia'] * 100
+        if detectados == 3:
+            ax.scatter(rodada, acuracia, s=400, marker='*', color='gold', edgecolors='black', linewidth=2, zorder=5)
+            ax.text(rodada, acuracia + 1, '✓ 3/3', ha='center', fontweight='bold', fontsize=10)
 
     ax.set_xlabel('Rodada Federada', fontweight='bold', fontsize=12)
-    ax.set_ylabel('Status de Detecção', fontweight='bold', fontsize=12)
-    ax.set_title('Detecção DBSCAN por Cliente ao Longo das Rodadas\n15 Clientes (3 Maliciosos)',
-                 fontsize=14, fontweight='bold')
-    ax.set_yticks([0, 1])
-    ax.set_yticklabels(['Normal', 'Detectado'])
-    ax.legend(fontsize=8, loc='center left', bbox_to_anchor=(1, 0.5), ncol=1)
-    ax.grid(True, alpha=0.3, linestyle='--', axis='x')
-    ax.set_ylim(-0.2, 1.2)
+    ax.set_ylabel('Acurácia (%)', fontweight='bold', fontsize=12)
+    ax.set_title('Acurácia Global com Detecção de Maliciosos (★ = 3/3 detectados)',
+                 fontweight='bold', fontsize=13)
+    ax.grid(True, alpha=0.3, linestyle='--')
+    ax.legend(fontsize=11)
 
+    # Gráfico 2: Taxa de detecção de maliciosos por rodada
+    ax = axes[1]
+    deteccoes_por_rodada = []
+    rodadas_det = []
+
+    for h in hist_com_defesa:
+        detectados = sum(1 for d in h['detectados'] if d['detectado'] and d['cliente'] in CLIENTES_MALICIOSOS)
+        taxa = (detectados / 3) * 100
+        deteccoes_por_rodada.append(taxa)
+        rodadas_det.append(h['rodada'])
+
+    bars = ax.bar(rodadas_det, deteccoes_por_rodada, color='#D62828', alpha=0.7, edgecolor='black', linewidth=1.5)
+
+    for bar, taxa in zip(bars, deteccoes_por_rodada):
+        ax.text(bar.get_x() + bar.get_width()/2., bar.get_height() + 1,
+                f'{taxa:.0f}%', ha='center', fontweight='bold', fontsize=11)
+
+    ax.axhline(y=100, color='green', linestyle='--', linewidth=2, label='Detecção Perfeita (100%)')
+    ax.set_xlabel('Rodada Federada', fontweight='bold', fontsize=12)
+    ax.set_ylabel('Taxa de Detecção (%)', fontweight='bold', fontsize=12)
+    ax.set_title('Taxa de Detecção de Clientes Maliciosos por Rodada',
+                 fontweight='bold', fontsize=13)
+    ax.set_ylim(0, 110)
+    ax.grid(True, alpha=0.3, axis='y')
+    ax.legend(fontsize=11)
+
+    plt.suptitle('Efetividade da Detecção DBSCAN - 15 Clientes',
+                 fontsize=15, fontweight='bold')
     plt.tight_layout()
-    plt.savefig(f'{RESULTADOS_DIR}dbscan_deteccoes_por_rodada_15clientes.png', dpi=300, bbox_inches='tight')
-    print(f"  Salvo: dbscan_deteccoes_por_rodada_15clientes.png")
+    plt.savefig(f'{RESULTADOS_DIR}dbscan_efetividade_deteccao.png', dpi=300, bbox_inches='tight')
+    print(f"  Salvo: dbscan_efetividade_deteccao.png")
     plt.close()
 
-
-# ==============================================================================
-# MAIN
-# ==============================================================================
 
 def main():
     import os
     os.makedirs(RESULTADOS_DIR, exist_ok=True)
 
     print("=" * 80)
-    print("DETECÇÃO COM DBSCAN DE CLIENTES MALICIOSOS")
-    print("15 Clientes (3 Maliciosos, 12 Honestos) - Bank Marketing Dataset")
+    print("ANÁLISE COMPLETA - DETECÇÃO DBSCAN")
+    print("15 Clientes (3 Maliciosos, 12 Honestos)")
     print("=" * 80)
 
-    # 1. Carrega dados
-    print("\n[1/4] Carregando dataset...")
+    # Carrega dados
+    print("\n[1/3] Carregando dataset...")
     X, y = carregar_dataset()
-    print(f"  Total: {len(X)} amostras | {X.shape[1]} features")
-    print(f"  Classe 0 (Nao): {(y==0).sum()} ({(y==0).mean()*100:.1f}%)")
-    print(f"  Classe 1 (Sim): {(y==1).sum()} ({(y==1).mean()*100:.1f}%)")
-
     clientes, dados_val = distribuir_dados_15clientes(X, y)
 
-    print(f"\n  ✓ Distribuído em {NUM_CLIENTES} clientes")
-    print(f"    - Clientes maliciosos: {CLIENTES_MALICIOSOS}")
-    for idx, (X_cli, y_cli) in enumerate(clientes, 1):
-        print(f"    Cliente {idx:2d}: {len(X_cli):,} amostras")
-
-    # 2. Executa os 3 cenários
-    print("\n[2/4] Executando cenários federados...")
-
-    print("  Cenário Normal (sem ataque)...")
+    # Executa cenários
+    print("\n[2/3] Executando cenários...")
     hist_normal = executar_federado_sem_defesa(clientes, dados_val, envenenado=False)
-
-    print("  Cenário Atacado (sem defesa)...")
     hist_sem_defesa = executar_federado_sem_defesa(clientes, dados_val, envenenado=True)
-
-    print("  Cenário Atacado (com defesa DBSCAN)...")
     hist_com_defesa = executar_federado_com_defesa_dbscan(clientes, dados_val, envenenado=True)
 
-    # Resultados
-    print("\n" + "=" * 80)
-    print("RESULTADOS FINAIS (Rodada 12)")
-    print("=" * 80)
-    print(f"  Normal:        Acuracia={hist_normal[-1]['acuracia']*100:.2f}%  F1={hist_normal[-1]['f1']*100:.2f}%  AUC={hist_normal[-1]['auc']:.4f}")
-    print(f"  Sem defesa:    Acuracia={hist_sem_defesa[-1]['acuracia']*100:.2f}%  F1={hist_sem_defesa[-1]['f1']*100:.2f}%  AUC={hist_sem_defesa[-1]['auc']:.4f}")
-    print(f"  Com DBSCAN:    Acuracia={hist_com_defesa[-1]['acuracia']*100:.2f}%  F1={hist_com_defesa[-1]['f1']*100:.2f}%  AUC={hist_com_defesa[-1]['auc']:.4f}")
+    print(f"\n  Normal:       {hist_normal[-1]['acuracia']*100:.2f}%")
+    print(f"  Sem defesa:   {hist_sem_defesa[-1]['acuracia']*100:.2f}%")
+    print(f"  Com DBSCAN:   {hist_com_defesa[-1]['acuracia']*100:.2f}%")
 
-    # Conta detecções corretas
-    deteccoes_corretas = 0
-    deteccoes_total = 0
-    for h in hist_com_defesa:
-        for d in h['detectados']:
-            if d['cliente'] in CLIENTES_MALICIOSOS:
-                deteccoes_total += 1
-                if d['detectado']:
-                    deteccoes_corretas += 1
+    # Gera visualizações
+    print("\n[3/3] Gerando visualizações...")
+    plot_matriz_confusao_por_rodada(hist_sem_defesa, hist_com_defesa)
+    plot_metricas_individuais_por_rodada(hist_sem_defesa, hist_com_defesa, hist_normal)
+    plot_tabela_comparativa_final(hist_normal, hist_sem_defesa, hist_com_defesa)
+    plot_degradacao_vs_recuperacao(hist_normal, hist_sem_defesa, hist_com_defesa)
+    plot_acuracia_por_cliente_malicioso(hist_com_defesa)
 
-    print(f"\n  Detecções corretas de maliciosos: {deteccoes_corretas}/{deteccoes_total} ({deteccoes_corretas/deteccoes_total*100:.1f}%)")
-
-    # 3. Visualizações
-    print("\n[3/4] Gerando visualizações...")
-    plot_dbscan_clusters_15clientes(hist_com_defesa)
-    plot_comparacao_dbscan(hist_sem_defesa, hist_com_defesa, hist_normal)
-    plot_eficacia_dbscan(hist_sem_defesa, hist_com_defesa, hist_normal)
-    plot_deteccoes_por_rodada_dbscan(hist_com_defesa)
-
-    print("\n[4/4] Concluído!")
-    print("=" * 80)
-    print("✅ 4 novas visualizações salvas em:", RESULTADOS_DIR)
-    print("   - dbscan_clusters_15clientes.png")
-    print("   - dbscan_comparacao_15clientes.png")
-    print("   - dbscan_eficacia_15clientes.png")
-    print("   - dbscan_deteccoes_por_rodada_15clientes.png")
+    print("\n✅ 5 novas visualizações geradas!")
     print("=" * 80)
 
 
